@@ -1,0 +1,35 @@
+# Per-model token price table (USD per 1M tokens), used by
+# src/trip_planner/cost/ledger.py to compute the agent-operating-cost side
+# of the dual cost ledger (see spec §3.5). Cache-write is priced at 1.25x
+# the input rate, cache-read at 0.1x — standard Anthropic prompt-caching
+# multipliers, not looked up per model.
+#
+# Verify against current pricing before relying on this financially —
+# https://www.anthropic.com/pricing (cached here as of 2026-06-24).
+
+default_model: claude-sonnet-5   # used by Weather/Flight/Policy agents (routine, high-volume)
+orchestrator_model: claude-sonnet-5   # planning step; bump to claude-opus-5 if plan quality needs it
+
+models:
+  claude-opus-5:
+    input_per_1m_usd: 5.00
+    output_per_1m_usd: 25.00
+    cache_write_per_1m_usd: 6.25
+    cache_read_per_1m_usd: 0.50
+
+  claude-sonnet-5:
+    input_per_1m_usd: 2.00
+    output_per_1m_usd: 10.00
+    cache_write_per_1m_usd: 2.50
+    cache_read_per_1m_usd: 0.20
+
+  claude-haiku-4-5:
+    input_per_1m_usd: 1.00
+    output_per_1m_usd: 5.00
+    cache_write_per_1m_usd: 1.25
+    cache_read_per_1m_usd: 0.10
+
+# Embeddings (Policy Agent RAG) run locally via sentence-transformers by
+# default — $0 marginal cost, not tracked in the ledger. If swapped for a
+# hosted embedding API later, add its per-1M-token rate here under its own
+# key and wire it into ledger.py.

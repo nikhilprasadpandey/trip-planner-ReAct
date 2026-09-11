@@ -1,0 +1,28 @@
+# Provider-swappable flight-search config. See src/trip_planner/tools/flight_tools.py.
+# Amadeus Self-Service sandbox was decommissioned 2026-07-17 — do not use it.
+#
+# `active` selects which provider the search_flights MCP tool calls.
+# Override at runtime via the FLIGHT_PROVIDER env var (takes precedence over this file).
+
+active: duffel   # duffel (test mode, dev/rehearsal) | aviationstack (live, demo — limited free quota)
+
+providers:
+  duffel:
+    base_url: "https://api.duffel.com"
+    mode: test                     # sandbox data, real API shape — safe to hammer during dev
+    timeout_seconds: 15
+    api_version: "v2"
+
+  aviationstack:
+    base_url: "https://api.aviationstack.com/v1"
+    mode: live
+    timeout_seconds: 15
+    free_quota_requests: 100       # for budgeting the live demo; route cache protects this
+    quota_warning_threshold: 10    # log a warning once remaining quota drops below this
+
+# Graceful degradation: if the active provider errors, times out, or is
+# reported quota-exhausted, the Flight Agent returns a structured
+# "pricing unavailable" observation rather than hanging/crashing the
+# orchestrator. No automatic fallback to the other provider (different data
+# shapes/guarantees) — that's an explicit operator action (flip `active`).
+on_failure: return_unavailable_observation

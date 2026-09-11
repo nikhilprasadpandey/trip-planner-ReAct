@@ -1,0 +1,47 @@
+# Guardrail policy: spend caps and approval routing, by job level.
+# Loaded at runtime by src/trip_planner/guardrails/approval_gate.py and
+# src/trip_planner/rag/retriever.py (Pinecone metadata filter).
+# Travel/finance ops can edit this file to change caps without a code deploy.
+
+job_levels:
+  ic:                       # individual contributor
+    label: "Individual Contributor"
+    max_cabin_class: economy
+    domestic_spend_cap_usd: 600
+    international_spend_cap_usd: 1800
+    preapproval_threshold_usd: 600       # fares at/under this: auto-approved
+    approver_role: "manager"
+    advance_booking_days_required: 7
+
+  manager:
+    label: "Manager"
+    max_cabin_class: premium_economy
+    domestic_spend_cap_usd: 1200
+    international_spend_cap_usd: 3500
+    preapproval_threshold_usd: 1200
+    approver_role: "director"
+    advance_booking_days_required: 3
+
+  director:
+    label: "Director"
+    max_cabin_class: business
+    domestic_spend_cap_usd: 2500
+    international_spend_cap_usd: 6000
+    preapproval_threshold_usd: 2500
+    approver_role: "vp_finance"
+    advance_booking_days_required: 0
+
+preferred_carriers:
+  - AA
+  - DL
+  - UA
+
+# Reflection-loop behavior: how many times the Policy Agent may ask the
+# Flight Agent for a cheaper/lower-cabin alternative before giving up and
+# routing to approval instead.
+max_reflection_retries: 2
+
+# Guardrail behavior toggles (see src/trip_planner/guardrails/)
+prompt_injection_check_enabled: true
+groundedness_check_enabled: true
+groundedness_min_citations: 1

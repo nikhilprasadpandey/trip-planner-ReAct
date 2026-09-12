@@ -81,14 +81,31 @@ async def _search_duffel(origin: str, destination: str, departure_date: str, cab
 
     fares: list[Fare] = []
     for offer in offers[:10]:
-        owner = offer.get("owner", {})
+        # Duffel offers commonly carry explicit `null`s for conditions that
+        # don't apply to a given offer (not just missing keys) — `.get(x, {})`
+        # doesn't guard against that, only against the key being absent.
+        owner = offer.get("owner") or {}
+        conditions = offer.get("conditions") or {}
+        change_rule = conditions.get("change_before_departure") or {}
+        # Duffel's `allowed` is a real boolean, not a string — the MCP
+        # server validates FlightSearchResult against its TypedDict via
+        # pydantic, and a raw bool there fails that validation (caught live;
+        # calling search_flights() directly in tests bypasses that
+        # validation layer entirely, so a plain unit test won't catch this
+        # class of bug — see test_free_tools_server.py for a test that goes
+        # through the actual MCP-registered tool instead).
+        changes_allowed = change_rule.get("allowed")
+        if changes_allowed is None:
+            fare_rules = "unknown"
+        else:
+            fare_rules = "changes allowed" if changes_allowed else "changes not allowed"
         fares.append(
             Fare(
-                carrier=owner.get("iata_code") or owner.get("name", "unknown"),
+                carrier=owner.get("iata_code") or owner.get("name") or "unknown",
                 price_usd=round(float(offer.get("total_amount", 0.0)), 2),
                 price_is_estimated=False,
                 cabin_class=cabin_class,
-                fare_rules=offer.get("conditions", {}).get("change_before_departure", {}).get("allowed", "unknown"),
+                fare_rules=fare_rules,
                 provider="duffel",
             )
         )

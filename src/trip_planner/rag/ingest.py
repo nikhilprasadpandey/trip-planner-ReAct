@@ -96,6 +96,7 @@ def _section_point_id(section_id: str) -> str:
 
 def _qdrant_collection(collection_name: str):
     from qdrant_client import QdrantClient, models
+    from qdrant_client.http.exceptions import UnexpectedResponse
 
     client = QdrantClient(url=os.environ["QDRANT_URL"], api_key=os.environ["QDRANT_API_KEY"])
     existing = {c.name for c in client.get_collections().collections}
@@ -104,6 +105,21 @@ def _qdrant_collection(collection_name: str):
             collection_name=collection_name,
             vectors_config=models.VectorParams(size=1536, distance=models.Distance.COSINE),  # text-embedding-3-small
         )
+
+    # Qdrant requires a payload index to filter by a field (the job-level
+    # scoping filter in rag/retriever.py) — without this, every filtered
+    # query 400s with "Index required but not found". create_payload_index
+    # is called unconditionally so a pre-existing collection (created before
+    # this index was added) gets it too; already-exists is swallowed for
+    # idempotency on repeat ingests.
+    try:
+        client.create_payload_index(
+            collection_name=collection_name, field_name="job_levels", field_schema=models.PayloadSchemaType.KEYWORD,
+        )
+    except UnexpectedResponse as exc:
+        if "already exists" not in str(exc).lower():
+            raise
+
     return client
 
 

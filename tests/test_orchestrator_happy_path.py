@@ -2,7 +2,7 @@
 
 `_extract_tool_result` and the graph's shape are tested offline (no LLM, no
 network). A full end-to-end run through real ReAct agents needs a live
-ANTHROPIC_API_KEY (and ideally DUFFEL_ACCESS_TOKEN) — that integration test
+OPENAI_API_KEY (and ideally DUFFEL_ACCESS_TOKEN) — that integration test
 is skipped unless both are present, so `pytest` stays fully offline by
 default per the spec's dry-run requirement.
 """
@@ -35,6 +35,21 @@ def test_extract_tool_result_returns_latest_matching_tool_call():
     assert missing is None
 
 
+def test_extract_tool_result_handles_the_real_mcp_content_block_shape():
+    """Regression: the real MCP + langchain_openai stack delivers
+    ToolMessage.content as [{"type": "text", "text": "<json>"}], not a plain
+    string — caught live, where this silently made every successful
+    weather/flight tool call look like "no result"."""
+    messages = [
+        ToolMessage(
+            content=[{"type": "text", "text": '{"latitude": 30.2, "longitude": -97.7}', "id": "lc_1"}],
+            name="geocode",
+            tool_call_id="1",
+        ),
+    ]
+    assert _extract_tool_result(messages, "geocode") == {"latitude": 30.2, "longitude": -97.7}
+
+
 def test_extract_tool_result_falls_back_to_raw_on_non_json_content():
     messages = [ToolMessage(content="not json", name="geocode", tool_call_id="1")]
     assert _extract_tool_result(messages, "geocode") == {"raw": "not json"}
@@ -47,8 +62,8 @@ def test_graph_has_expected_node_shape():
 
 
 @pytest.mark.skipif(
-    not (os.environ.get("ANTHROPIC_API_KEY") and os.environ.get("DUFFEL_ACCESS_TOKEN")),
-    reason="requires a live ANTHROPIC_API_KEY + DUFFEL_ACCESS_TOKEN for a real end-to-end run",
+    not (os.environ.get("OPENAI_API_KEY") and os.environ.get("DUFFEL_ACCESS_TOKEN")),
+    reason="requires a live OPENAI_API_KEY + DUFFEL_ACCESS_TOKEN for a real end-to-end run",
 )
 async def test_run_trip_planning_end_to_end_live():
     request: TripRequest = {

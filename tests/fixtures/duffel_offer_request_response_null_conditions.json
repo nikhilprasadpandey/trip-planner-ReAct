@@ -1,0 +1,21 @@
+{
+  "data": {
+    "id": "orq_test_00002",
+    "offers": [
+      {
+        "id": "off_test_00003",
+        "total_amount": "455.10",
+        "total_currency": "USD",
+        "owner": {"iata_code": "UA", "name": "United Airlines"},
+        "conditions": {"change_before_departure": null, "refund_before_departure": null}
+      },
+      {
+        "id": "off_test_00004",
+        "total_amount": "470.00",
+        "total_currency": "USD",
+        "owner": null,
+        "conditions": null
+      }
+    ]
+  }
+}

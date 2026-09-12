@@ -15,12 +15,12 @@ and why", nothing more.
 """
 from __future__ import annotations
 
-import json
 from typing import TypedDict
 
 from langchain_core.messages import ToolMessage
 
 from trip_planner.agents.base import AllowListedReActAgent
+from trip_planner.agents.tool_messages import parse_tool_message_content
 from trip_planner.audit.store import record_event
 from trip_planner.cache.semantic_cache import SemanticPolicyCache, get_default_cache
 from trip_planner.guardrails.groundedness import check_groundedness
@@ -74,14 +74,9 @@ async def build_policy_agent(job_level: str, retriever: PolicyRetriever | None =
 def _extract_retrieved_clauses(messages: list) -> list[Clause]:
     for message in reversed(messages):
         if isinstance(message, ToolMessage) and getattr(message, "name", None) == "retrieve_policy_clauses":
-            content = message.content
-            if isinstance(content, str):
-                try:
-                    return json.loads(content)
-                except (json.JSONDecodeError, TypeError):
-                    return []
-            if isinstance(content, list):
-                return content
+            parsed = parse_tool_message_content(message.content)
+            if isinstance(parsed, list):
+                return parsed
     return []
 
 

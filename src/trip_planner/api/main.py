@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -59,7 +59,7 @@ async def health() -> dict:
 @app.post("/trip-requests")
 @limiter.limit("60/minute")
 async def create_trip_request(
-    request,  # required first positional arg for slowapi's rate-limit decorator
+    request: Request,  # required first positional arg for slowapi's rate-limit decorator
     body: TripRequestIn,
     identity: EmployeeIdentity = Depends(resolve_identity),
 ) -> dict:

@@ -26,7 +26,14 @@ from typing import Any
 
 from trip_planner.rag.embeddings import Embedder
 
-_DEFAULT_SIMILARITY_THRESHOLD = 0.92
+# Empirically set against real text-embedding-3-small output (checked live,
+# not assumed): paraphrases of the same policy question scored 0.70-0.78
+# cosine similarity; genuinely different questions scored 0.35-0.36. 0.70
+# sits just under the paraphrase floor, with roughly 2x margin above the
+# unrelated-question ceiling — comfortable room either way. An initial guess
+# of 0.92 here (never checked against real embeddings) meant the cache
+# never hit in practice; re-tune again if the corpus/model changes.
+_DEFAULT_SIMILARITY_THRESHOLD = 0.70
 
 
 def _cosine_similarity(a: list[float], b: list[float]) -> float:

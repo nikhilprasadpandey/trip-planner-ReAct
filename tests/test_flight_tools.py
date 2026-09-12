@@ -8,11 +8,25 @@ from pathlib import Path
 import pytest
 import respx
 from httpx import Response
+from pydantic import TypeAdapter
 
 from trip_planner import config_loader
 from trip_planner.tools import flight_tools
+from trip_planner.tools.flight_tools import FlightSearchResult
 
 FIXTURES = Path(__file__).parent / "fixtures"
+
+# The MCP server (mcp_servers/free_tools_server.py) validates search_flights'
+# return value against this exact schema before it ever reaches an agent —
+# calling flight_tools.search_flights() directly, as every test below does,
+# bypasses that validation. _assert_mcp_would_accept re-applies it, so a
+# TypedDict/schema mismatch (e.g. a bool where FlightSearchResult expects a
+# str) fails here instead of only failing live against real provider data.
+_RESULT_ADAPTER = TypeAdapter(FlightSearchResult)
+
+
+def _assert_mcp_would_accept(result: dict) -> None:
+    _RESULT_ADAPTER.validate_python(result)
 
 
 def _load(name: str) -> dict:
@@ -35,6 +49,35 @@ async def test_duffel_happy_path(monkeypatch):
     assert result["fares"][0]["carrier"] == "DL"
     assert result["fares"][0]["price_usd"] == 389.00
     assert all(f["price_is_estimated"] is False for f in result["fares"])
+    # regression: Duffel's `allowed` is a real bool; fare_rules must be a
+    # human-readable string, not that bool passed straight through
+    assert all(isinstance(f["fare_rules"], str) for f in result["fares"])
+    _assert_mcp_would_accept(result)
+
+
+async def test_duffel_handles_null_conditions_and_owner(monkeypatch):
+    """Regression: real Duffel offers commonly carry explicit `null`s for
+    conditions/owner fields that don't apply to a given offer — a
+    `.get(x, {})` on a key whose *value* is None still returns None, and
+    chaining `.get()` on that raised 'NoneType has no attribute get' in
+    production against live Duffel data (caught during acceptance testing,
+    not by the original fixture, which only used clean data)."""
+    monkeypatch.setenv("FLIGHT_PROVIDER", "duffel")
+    monkeypatch.setenv("DUFFEL_ACCESS_TOKEN", "duffel_test_fake_token")
+
+    with respx.mock(base_url="https://api.duffel.com") as mock:
+        mock.post("/air/offer_requests").mock(
+            return_value=Response(201, json=_load("duffel_offer_request_response_null_conditions.json"))
+        )
+        result = await flight_tools.search_flights("SFO", "AUS", "2026-10-01")
+
+    assert result["available"] is True
+    fares_by_price = {f["price_usd"]: f for f in result["fares"]}
+    assert fares_by_price[455.10]["carrier"] == "UA"
+    assert fares_by_price[455.10]["fare_rules"] == "unknown"
+    assert fares_by_price[470.00]["carrier"] == "unknown"
+    assert fares_by_price[470.00]["fare_rules"] == "unknown"
+    _assert_mcp_would_accept(result)
 
 
 async def test_aviationstack_happy_path(monkeypatch):
@@ -51,6 +94,7 @@ async def test_aviationstack_happy_path(monkeypatch):
     assert result["provider"] == "aviationstack"
     assert result["fares"][0]["carrier"] == "UA"
     assert result["fares"][0]["price_is_estimated"] is True
+    _assert_mcp_would_accept(result)
 
 
 async def test_aviationstack_quota_exhausted_degrades_gracefully(monkeypatch):

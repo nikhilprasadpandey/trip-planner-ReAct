@@ -6,8 +6,8 @@ before giving up and routing to approval.
 """
 from __future__ import annotations
 
-import json
 import uuid
+from datetime import datetime, timezone
 from functools import lru_cache
 
 from langchain_core.messages import ToolMessage
@@ -15,6 +15,7 @@ from langgraph.graph import END, StateGraph
 
 from trip_planner.agents.flight_agent import build_flight_agent
 from trip_planner.agents.policy_agent import evaluate_fare
+from trip_planner.agents.tool_messages import parse_tool_message_content
 from trip_planner.agents.weather_agent import build_weather_agent
 from trip_planner.audit.store import record_event
 from trip_planner.cache import route_cache
@@ -36,6 +37,13 @@ class PromptInjectionDetectedError(Exception):
     pass
 
 
+def _final_ai_text(messages: list) -> str:
+    for message in reversed(messages):
+        if getattr(message, "type", None) == "ai" and getattr(message, "content", None):
+            return message.content if isinstance(message.content, str) else str(message.content)
+    return ""
+
+
 def _extract_tool_result(messages: list, tool_name: str) -> dict | None:
     """Pull the most recent structured result for `tool_name` out of a ReAct
     agent's message trace, so orchestrator state carries structured data
@@ -43,24 +51,21 @@ def _extract_tool_result(messages: list, tool_name: str) -> dict | None:
     answer."""
     for message in reversed(messages):
         if isinstance(message, ToolMessage) and getattr(message, "name", None) == tool_name:
-            content = message.content
-            if isinstance(content, str):
-                try:
-                    return json.loads(content)
-                except (json.JSONDecodeError, TypeError):
-                    return {"raw": content}
-            if isinstance(content, dict):
-                return content
+            parsed = parse_tool_message_content(message.content)
+            if parsed is not None:
+                return parsed
     return None
 
 
 async def weather_node(state: TripState) -> dict:
     request = state["request"]
+    trace_id = state["trace_id"]
+    today = datetime.now(timezone.utc).date().isoformat()
     agent = await build_weather_agent()
     result = await agent.ainvoke(
-        f"Look up the weather for a trip to {request['destination_city']} "
-        f"around {request['departure_date']}.",
-        trace_id=state["trace_id"],
+        f"Today's date is {today}. Look up the weather for a trip to "
+        f"{request['destination_city']} around {request['departure_date']}.",
+        trace_id=trace_id,
     )
     messages = result["messages"]
     updates: dict = {}
@@ -68,9 +73,15 @@ async def weather_node(state: TripState) -> dict:
         updates["geocode"] = geo
     if (wx := _extract_tool_result(messages, "get_weather")) is not None:
         updates["weather"] = wx
+    else:
+        # Not fatal (weather is secondary info, spec's core flow doesn't
+        # gate on it) — but worth a visible signal, since a silently empty
+        # `weather` key looks identical to "no forecast data" and "the
+        # agent never called the tool" otherwise.
+        record_event(trace_id, "weather_tool_not_called", {"final_answer": _final_ai_text(messages)})
 
-    record_event(state["trace_id"], "weather_node_complete", {"request": request, "result": updates})
-    log_span(state["trace_id"], "agent:weather", input=request, output=updates)
+    record_event(trace_id, "weather_node_complete", {"request": request, "result": updates})
+    log_span(trace_id, "agent:weather", input=request, output=updates)
     return updates
 
 

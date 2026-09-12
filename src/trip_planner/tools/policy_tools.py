@@ -8,7 +8,7 @@ employee can't get the LLM to ask for another tier's clauses by phrasing the
 question differently, because the tool itself can't take job_level as input.
 
 Not an MCP tool: spec §3.2 scopes the two MCP servers to flight-pricing and
-booking; Pinecone retrieval is a plain LangChain tool.
+booking; Qdrant retrieval is a plain LangChain tool.
 """
 from __future__ import annotations
 

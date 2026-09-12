@@ -1,4 +1,4 @@
-"""Offline test for the policy-corpus parser (no Pinecone/OpenAI needed)."""
+"""Offline test for the policy-corpus parser (no Qdrant/OpenAI needed)."""
 from __future__ import annotations
 
 from trip_planner.rag.ingest import CORPUS_PATH, parse_policy_corpus

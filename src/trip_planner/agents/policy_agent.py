@@ -51,7 +51,7 @@ class PolicyAgent(AllowListedReActAgent):
 
     @classmethod
     def mcp_server_name(cls) -> str:
-        # Not MCP-backed — see tools/policy_tools.py header for why Pinecone
+        # Not MCP-backed — see tools/policy_tools.py header for why Qdrant
         # retrieval stays a plain LangChain tool per spec §3.2's MCP scope.
         return "n/a (plain LangChain tool, not MCP — see tools/policy_tools.py)"
 

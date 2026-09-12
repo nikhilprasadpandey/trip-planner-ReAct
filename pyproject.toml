@@ -1,7 +1,7 @@
 [project]
 name = "trip-planner-react"
 version = "0.1.0"
-description = "Corporate Travel Planner & Policy-Compliance Agent — ReAct multi-agent, MCP, Pinecone RAG, guardrails, audit, cost, auth"
+description = "Corporate Travel Planner & Policy-Compliance Agent — ReAct multi-agent, MCP, Qdrant RAG, guardrails, audit, cost, auth"
 requires-python = ">=3.13"
 readme = "README.md"
 
@@ -14,8 +14,8 @@ dependencies = [
     "mcp>=1.2.0",
     "langchain-mcp-adapters>=0.0.5",
     # Vector DB / RAG
-    "pinecone[grpc]>=5.0.0",
-    "openai>=1.50.0",   # embeddings client only (text-embedding-3-small) — LLM calls stay on Anthropic
+    "qdrant-client>=1.12.0",
+    "openai>=1.50.0",   # Azure OpenAI embeddings client only (text-embedding-3-small) — LLM calls stay on Anthropic
     # API gateway + UI
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",

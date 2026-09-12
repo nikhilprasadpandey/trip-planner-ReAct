@@ -2,10 +2,14 @@
 most convincing demo moment": same clause corpus, filtered results, so a
 manager-level query surfaces the manager-tier cap, never the IC tier's).
 
-`PolicyRetriever` takes its Pinecone index and embedder as constructor args
+`PolicyRetriever` takes its index client and embedder as constructor args
 so it's testable with fakes (see tests/test_retriever.py) — no live
-Pinecone/OpenAI credentials needed to verify the job-level filter is built
-and applied correctly.
+Qdrant/Azure OpenAI credentials needed to verify the job-level filter is
+built and applied correctly. The `IndexClient` Protocol below is an
+internal, Pinecone-shaped seam (`query(vector, filter, top_k,
+include_metadata) -> {"matches": [...]}`) that `_QdrantIndexAdapter` wraps
+the real Qdrant client to match, so swapping the vector DB again later
+means writing a new adapter, not touching `retrieve()` or its tests.
 """
 from __future__ import annotations
 
@@ -24,17 +28,48 @@ class Clause(TypedDict):
 
 
 class IndexClient(Protocol):
-    """The subset of the Pinecone Index interface this module depends on."""
+    """The subset of index behavior this module depends on."""
 
     def query(self, *, vector: list[float], filter: dict, top_k: int, include_metadata: bool) -> dict: ...
 
 
-def _default_index() -> IndexClient:
-    from pinecone import Pinecone
+class _QdrantIndexAdapter:
+    """Wraps qdrant_client.QdrantClient to present the IndexClient shape
+    above. Translates our `{"job_levels": {"$in": [...]}}` filter into a
+    Qdrant `Filter(must=[FieldCondition(match=MatchAny(...))])` and reshapes
+    Qdrant's response into `{"matches": [{"id", "score", "metadata"}]}`."""
 
-    pc = Pinecone(api_key=os.environ["PINECONE_API_KEY"])
-    index_name = os.environ.get("PINECONE_INDEX_NAME", "corporate-travel-policy")
-    return pc.Index(index_name)
+    def __init__(self, client, collection_name: str):
+        self._client = client
+        self._collection_name = collection_name
+
+    def query(self, *, vector: list[float], filter: dict, top_k: int, include_metadata: bool) -> dict:
+        from qdrant_client import models
+
+        job_levels = filter.get("job_levels", {}).get("$in", [])
+        qdrant_filter = models.Filter(
+            must=[models.FieldCondition(key="job_levels", match=models.MatchAny(any=job_levels))]
+        )
+        result = self._client.query_points(
+            collection_name=self._collection_name,
+            query=vector,
+            query_filter=qdrant_filter,
+            limit=top_k,
+            with_payload=include_metadata,
+        )
+        matches = [
+            {"id": str(point.id), "score": point.score, "metadata": point.payload or {}}
+            for point in result.points
+        ]
+        return {"matches": matches}
+
+
+def _default_index() -> IndexClient:
+    from qdrant_client import QdrantClient
+
+    client = QdrantClient(url=os.environ["QDRANT_URL"], api_key=os.environ["QDRANT_API_KEY"])
+    collection_name = os.environ.get("QDRANT_COLLECTION_NAME", "corporate-travel-policy")
+    return _QdrantIndexAdapter(client, collection_name)
 
 
 class PolicyRetriever:
@@ -49,9 +84,9 @@ class PolicyRetriever:
 
     def retrieve(self, query: str, job_level: str, top_k: int = 4) -> list[Clause]:
         """Top-k clauses relevant to `query`, filtered to sections applicable
-        to `job_level`. The filter is applied server-side (Pinecone metadata
-        filter), not client-side after the fact — a manager's query can never
-        see IC-only clauses score their way into the top-k."""
+        to `job_level`. The filter is applied server-side (a Qdrant payload
+        filter), not client-side after the fact — a manager's query can
+        never see IC-only clauses score their way into the top-k."""
         vector = self._embedder.embed_query(query)
         result = self._get_index().query(
             vector=vector,

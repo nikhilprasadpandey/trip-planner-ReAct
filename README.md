@@ -2,7 +2,7 @@
 
 A production-minded, multi-agent ReAct system: an employee asks for a trip,
 the system finds live flights, checks weather, checks the fare against
-corporate travel policy (Pinecone RAG, scoped by job level), and routes
+corporate travel policy (Qdrant RAG, scoped by job level), and routes
 anything out-of-policy for human approval before booking.
 
 Full spec: [`enterprise_agent_build_spec.md`](enterprise_agent_build_spec.md).
@@ -13,7 +13,7 @@ Architecture docs: [`docs/`](docs/) (added in build milestone M4).
 
 ## Stack
 
-Python 3.13 · LangChain · LangGraph · FastAPI · Streamlit · Pinecone · MCP ·
+Python 3.13 · LangChain · LangGraph · FastAPI · Streamlit · Qdrant · MCP ·
 Langfuse · SQLAlchemy · Anthropic Claude
 
 ## Project layout
@@ -27,7 +27,7 @@ src/trip_planner/
   tools/                  LangChain tools (flight, weather, policy, booking)
   mcp_servers/            MCP servers: free-tools (geocode/weather/flights),
                           booking (book_flight, approval-gated)
-  rag/                    Pinecone ingestion + retrieval, policy corpus
+  rag/                    Qdrant ingestion + retrieval, policy corpus
   guardrails/             approval gate, prompt-injection, groundedness, allowlist
   cost/                   dual cost ledger (agent compute vs. business fare cost)
   cache/                  route cache (exact-match) + semantic cache (policy Q&A)
@@ -68,7 +68,7 @@ pytest
 ```
 
 Runs fully offline against fixtures in `tests/fixtures/` (mock
-Aviationstack/Duffel/Pinecone responses) — no API keys required. Live keys
+Aviationstack/Duffel/Qdrant responses) — no API keys required. Live keys
 in `.env` are only needed to run the app itself.
 
 ## Config

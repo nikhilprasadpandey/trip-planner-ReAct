@@ -1,5 +1,5 @@
 """Ingestion pipeline for the corporate travel policy corpus (spec §3.3):
-chunk by policy section, embed, upsert to Pinecone with metadata (section
+chunk by policy section, embed, upsert to Qdrant with metadata (section
 id, job-level applicability, last-updated date).
 
 Run: python -m trip_planner.rag.ingest
@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import re
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict
@@ -83,49 +84,57 @@ def parse_policy_corpus(markdown_text: str) -> ParsedCorpus:
     return ParsedCorpus(sections=sections, last_updated=last_updated)
 
 
-def _pinecone_index(index_name: str):
-    from pinecone import Pinecone, ServerlessSpec
+_QDRANT_ID_NAMESPACE = uuid.UUID("6f6a2e2a-6b3e-4b8f-9b0e-7a1c2d3e4f50")
 
-    pc = Pinecone(api_key=os.environ["PINECONE_API_KEY"])
-    if index_name not in [idx["name"] for idx in pc.list_indexes()]:
-        pc.create_index(
-            name=index_name,
-            dimension=1536,  # text-embedding-3-small
-            metric="cosine",
-            spec=ServerlessSpec(
-                cloud=os.environ.get("PINECONE_CLOUD", "aws"),
-                region=os.environ.get("PINECONE_REGION", "us-east-1"),
-            ),
+
+def _section_point_id(section_id: str) -> str:
+    """Qdrant point ids must be an unsigned int or a UUID — deterministic
+    uuid5 so re-ingesting the same section_id overwrites its point instead
+    of duplicating it."""
+    return str(uuid.uuid5(_QDRANT_ID_NAMESPACE, section_id))
+
+
+def _qdrant_collection(collection_name: str):
+    from qdrant_client import QdrantClient, models
+
+    client = QdrantClient(url=os.environ["QDRANT_URL"], api_key=os.environ["QDRANT_API_KEY"])
+    existing = {c.name for c in client.get_collections().collections}
+    if collection_name not in existing:
+        client.create_collection(
+            collection_name=collection_name,
+            vectors_config=models.VectorParams(size=1536, distance=models.Distance.COSINE),  # text-embedding-3-small
         )
-    return pc.Index(index_name)
+    return client
 
 
-def ingest(corpus_path: Path = CORPUS_PATH, index_name: str | None = None) -> int:
-    """Parses the corpus, embeds each section, upserts to Pinecone.
+def ingest(corpus_path: Path = CORPUS_PATH, collection_name: str | None = None) -> int:
+    """Parses the corpus, embeds each section, upserts to Qdrant.
     Returns the number of sections upserted."""
-    index_name = index_name or os.environ.get("PINECONE_INDEX_NAME", "corporate-travel-policy")
+    from qdrant_client import models
+
+    collection_name = collection_name or os.environ.get("QDRANT_COLLECTION_NAME", "corporate-travel-policy")
     parsed = parse_policy_corpus(corpus_path.read_text(encoding="utf-8"))
 
     embedder = Embedder()
     vectors = embedder.embed_texts([s["text"] for s in parsed.sections])
 
-    index = _pinecone_index(index_name)
-    upserts = [
-        {
-            "id": section["section_id"],
-            "values": vector,
-            "metadata": {
+    client = _qdrant_collection(collection_name)
+    points = [
+        models.PointStruct(
+            id=_section_point_id(section["section_id"]),
+            vector=vector,
+            payload={
                 "section_id": section["section_id"],
                 "title": section["title"],
                 "text": section["text"],
                 "job_levels": section["job_levels"],
                 "last_updated": section["last_updated"],
             },
-        }
+        )
         for section, vector in zip(parsed.sections, vectors)
     ]
-    index.upsert(vectors=upserts)
-    return len(upserts)
+    client.upsert(collection_name=collection_name, points=points)
+    return len(points)
 
 
 if __name__ == "__main__":

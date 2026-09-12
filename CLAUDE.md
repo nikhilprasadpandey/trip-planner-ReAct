@@ -10,10 +10,18 @@ multi-agent ReAct system. Full requirements: `enterprise_agent_build_spec.md`
 and milestones: see the plan referenced in project memory / conversation
 history (M0–M4).
 
+**Deviation from the spec doc, as-built**: the spec names Pinecone +
+OpenAI direct for the policy RAG pipeline; the actual build uses **Qdrant
+Cloud** (vector DB) + **Azure OpenAI** (`text-embedding-3-small`
+deployment, embeddings only), per a later instruction from the user who
+provided Qdrant/Langfuse credentials directly. `rag/retriever.py` keeps a
+Pinecone-shaped internal seam (`IndexClient` Protocol) specifically so
+another swap later doesn't ripple outward.
+
 ## Stack
 
 Python 3.13, LangChain + LangGraph (orchestration), FastAPI (API gateway),
-Streamlit (UI), Pinecone (policy RAG), MCP (`mcp` SDK, two servers), Langfuse
+Streamlit (UI), Qdrant (policy RAG), MCP (`mcp` SDK, two servers), Langfuse
 (observability), SQLAlchemy (audit store), Anthropic Claude (LLM).
 
 ## Key architectural rules (do not violate silently)
@@ -31,7 +39,7 @@ Streamlit (UI), Pinecone (policy RAG), MCP (`mcp` SDK, two servers), Langfuse
   `FLIGHT_PROVIDER` env var: `duffel` test mode vs `aviationstack` live).
   Never hardcode against one provider's response shape outside
   `tools/flight_tools.py`.
-- **Policy retrieval is job-level-scoped** — Pinecone queries from the Policy
+- **Policy retrieval is job-level-scoped** — Qdrant queries from the Policy
   Agent must filter by the requester's job level (metadata filter), re-checked
   at the retrieval call itself, not only at the API gateway.
 - **Cache keys**: flight-route cache by route+date (safe to share across

@@ -1,4 +1,4 @@
-"""Offline test for job-level-scoped Pinecone retrieval (spec §3.3) — a
+"""Offline test for job-level-scoped Qdrant retrieval (spec §3.3) — a
 fake index/embedder, no live credentials needed. Verifies the job-level
 metadata filter is actually built and passed through to the query."""
 from __future__ import annotations
@@ -18,7 +18,7 @@ class FakeIndex:
     def query(self, *, vector, filter, top_k, include_metadata):
         self.last_query_kwargs = {"vector": vector, "filter": filter, "top_k": top_k}
         job_levels = filter["job_levels"]["$in"]
-        # Simulate Pinecone's server-side filter: only "return" matches whose
+        # Simulate Qdrant's server-side filter: only "return" matches whose
         # metadata job_levels includes the requested tier.
         all_matches = [
             {"id": "3a", "score": 0.9, "metadata": {"section_id": "3a", "title": "IC caps", "text": "$600 cap", "job_levels": ["ic"]}},

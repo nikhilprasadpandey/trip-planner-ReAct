@@ -29,10 +29,12 @@ models:
     cache_write_per_1m_usd: 1.25
     cache_read_per_1m_usd: 0.10
 
-# Embeddings (Policy Agent RAG) use OpenAI text-embedding-3-small
-# ($0.02 / 1M tokens as of 2026-06-24 — verify before relying on this
-# financially). This is the one non-Anthropic API call in the system;
-# everything else (LLM calls, agents) stays on Anthropic Claude.
+# Embeddings (Policy Agent RAG) use the Azure OpenAI text-embedding-3-small
+# deployment (~$0.02 / 1M tokens as of 2026-06-24, Azure pricing tracks
+# OpenAI direct for this model but confirm against your Azure agreement —
+# verify before relying on this financially). This is the one
+# non-Anthropic API call in the system; everything else (LLM calls,
+# agents) stays on Anthropic Claude.
 embeddings:
   text-embedding-3-small:
     input_per_1m_usd: 0.02

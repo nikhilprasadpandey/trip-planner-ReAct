@@ -1,6 +1,6 @@
 # Guardrail policy: spend caps and approval routing, by job level.
 # Loaded at runtime by src/trip_planner/guardrails/approval_gate.py and
-# src/trip_planner/rag/retriever.py (Pinecone metadata filter).
+# src/trip_planner/rag/retriever.py (Qdrant payload filter).
 # Travel/finance ops can edit this file to change caps without a code deploy.
 
 job_levels:

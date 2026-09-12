@@ -10,19 +10,25 @@ multi-agent ReAct system. Full requirements: `enterprise_agent_build_spec.md`
 and milestones: see the plan referenced in project memory / conversation
 history (M0–M4).
 
-**Deviation from the spec doc, as-built**: the spec names Pinecone +
-OpenAI direct for the policy RAG pipeline; the actual build uses **Qdrant
-Cloud** (vector DB) + **Azure OpenAI** (`text-embedding-3-small`
-deployment, embeddings only), per a later instruction from the user who
-provided Qdrant/Langfuse credentials directly. `rag/retriever.py` keeps a
-Pinecone-shaped internal seam (`IndexClient` Protocol) specifically so
-another swap later doesn't ripple outward.
+**Deviations from the spec doc, as-built** (the spec names Anthropic Claude
++ Pinecone + OpenAI direct throughout):
+- **Vector DB**: Qdrant Cloud, not Pinecone — user provided Qdrant
+  credentials directly. `rag/retriever.py` keeps a Pinecone-shaped internal
+  seam (`IndexClient` Protocol) so another swap later doesn't ripple
+  outward.
+- **LLM + embeddings**: OpenAI (`gpt-4.1` for all agent reasoning,
+  `text-embedding-3-small` for RAG), not Anthropic Claude — user provided
+  an OpenAI key and explicitly opted out of providing an Anthropic key.
+  One provider, one key, for both. `agents/base.py` is the single place
+  the model client is constructed (`ChatOpenAI`) — swapping providers
+  again means changing that one file plus `config/model_prices.yaml`'s
+  price table, not touching individual agents.
 
 ## Stack
 
 Python 3.13, LangChain + LangGraph (orchestration), FastAPI (API gateway),
 Streamlit (UI), Qdrant (policy RAG), MCP (`mcp` SDK, two servers), Langfuse
-(observability), SQLAlchemy (audit store), Anthropic Claude (LLM).
+(observability), SQLAlchemy (audit store), OpenAI (LLM + embeddings).
 
 ## Key architectural rules (do not violate silently)
 

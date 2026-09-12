@@ -16,7 +16,7 @@ Architecture docs: [`docs/`](docs/) (added in build milestone M4).
 ## Stack
 
 Python 3.13 · LangChain · LangGraph · FastAPI · Streamlit · Qdrant · MCP ·
-Langfuse · SQLAlchemy · Anthropic Claude · Azure OpenAI (embeddings only)
+Langfuse · SQLAlchemy · OpenAI (gpt-4.1 + text-embedding-3-small)
 
 ## Project layout
 
@@ -50,12 +50,12 @@ pip install -e ".[dev]"
 cp .env.example .env             # fill in keys — see comments in the file
 ```
 
-Required live keys to run the app for real: `ANTHROPIC_API_KEY` (agents),
-`QDRANT_URL` + `QDRANT_API_KEY` (policy RAG), `AZURE_OPENAI_API_KEY` +
-`AZURE_OPENAI_ENDPOINT` (embeddings). `DUFFEL_ACCESS_TOKEN` or
-`AVIATIONSTACK_API_KEY` for flight pricing (`FLIGHT_PROVIDER` picks which).
-`LANGFUSE_*` and a real `AUDIT_DB_URL` (Postgres) are optional — the app
-runs fine without them (SQLite + no tracing).
+Required live keys to run the app for real: `OPENAI_API_KEY` (agent LLM
+calls, gpt-4.1, and embeddings, text-embedding-3-small — one key for
+both), `QDRANT_URL` + `QDRANT_API_KEY` (policy RAG). `DUFFEL_ACCESS_TOKEN`
+or `AVIATIONSTACK_API_KEY` for flight pricing (`FLIGHT_PROVIDER` picks
+which). `LANGFUSE_*` and a real `AUDIT_DB_URL` (Postgres) are optional —
+the app runs fine without them (SQLite + no tracing).
 
 ## Running
 
@@ -95,8 +95,8 @@ pytest
 ```
 
 Runs fully offline against fixtures in `tests/fixtures/` and fakes/mocks
-for Qdrant, embeddings, and Anthropic — no live keys required. A single
-skipped test exercises a real end-to-end run when `ANTHROPIC_API_KEY` and
+for Qdrant, embeddings, and OpenAI — no live keys required. A single
+skipped test exercises a real end-to-end run when `OPENAI_API_KEY` and
 `DUFFEL_ACCESS_TOKEN` are set.
 
 ## Config

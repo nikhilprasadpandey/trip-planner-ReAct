@@ -1,40 +1,25 @@
 # Per-model token price table (USD per 1M tokens), used by
 # src/trip_planner/cost/ledger.py to compute the agent-operating-cost side
-# of the dual cost ledger (see spec §3.5). Cache-write is priced at 1.25x
-# the input rate, cache-read at 0.1x — standard Anthropic prompt-caching
-# multipliers, not looked up per model.
+# of the dual cost ledger (see spec §3.5).
 #
 # Verify against current pricing before relying on this financially —
-# https://www.anthropic.com/pricing (cached here as of 2026-06-24).
+# https://openai.com/api/pricing (cached here as of 2026-06-24, gpt-4.1
+# launch pricing).
 
-default_model: claude-sonnet-5   # used by Weather/Flight/Policy agents (routine, high-volume)
-orchestrator_model: claude-sonnet-5   # planning step; bump to claude-opus-5 if plan quality needs it
+default_model: gpt-4.1   # used by Weather/Flight/Policy agents (routine, high-volume)
+orchestrator_model: gpt-4.1   # planning step
 
 models:
-  claude-opus-5:
-    input_per_1m_usd: 5.00
-    output_per_1m_usd: 25.00
-    cache_write_per_1m_usd: 6.25
+  gpt-4.1:
+    input_per_1m_usd: 2.00
+    output_per_1m_usd: 8.00
+    cache_write_per_1m_usd: 2.00   # OpenAI's automatic prompt caching has no separate write charge
     cache_read_per_1m_usd: 0.50
 
-  claude-sonnet-5:
-    input_per_1m_usd: 2.00
-    output_per_1m_usd: 10.00
-    cache_write_per_1m_usd: 2.50
-    cache_read_per_1m_usd: 0.20
-
-  claude-haiku-4-5:
-    input_per_1m_usd: 1.00
-    output_per_1m_usd: 5.00
-    cache_write_per_1m_usd: 1.25
-    cache_read_per_1m_usd: 0.10
-
-# Embeddings (Policy Agent RAG) use the Azure OpenAI text-embedding-3-small
-# deployment (~$0.02 / 1M tokens as of 2026-06-24, Azure pricing tracks
-# OpenAI direct for this model but confirm against your Azure agreement —
-# verify before relying on this financially). This is the one
-# non-Anthropic API call in the system; everything else (LLM calls,
-# agents) stays on Anthropic Claude.
+# Embeddings (Policy Agent RAG) use OpenAI text-embedding-3-small directly
+# (~$0.02 / 1M tokens as of 2026-06-24 — verify before relying on this
+# financially). Same OPENAI_API_KEY as the agent LLM calls above — one
+# provider, one key, for both.
 embeddings:
   text-embedding-3-small:
     input_per_1m_usd: 0.02

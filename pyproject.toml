@@ -8,14 +8,14 @@ readme = "README.md"
 dependencies = [
     # LLM + orchestration
     "langchain>=0.3.0",
-    "langchain-anthropic>=0.3.0",
+    "langchain-openai>=0.2.0",
     "langgraph>=0.2.0",
     # MCP
     "mcp>=1.2.0",
     "langchain-mcp-adapters>=0.0.5",
     # Vector DB / RAG
     "qdrant-client>=1.12.0",
-    "openai>=1.50.0",   # Azure OpenAI embeddings client only (text-embedding-3-small) — LLM calls stay on Anthropic
+    "openai>=1.50.0",   # both agent LLM calls (gpt-4.1) and embeddings (text-embedding-3-small)
     # API gateway + UI
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",

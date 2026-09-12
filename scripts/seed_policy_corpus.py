@@ -2,8 +2,8 @@
 """Seed/refresh the Qdrant policy index from rag/corpus/policy_source.md.
 
 Usage: python scripts/seed_policy_corpus.py
-Requires QDRANT_URL, QDRANT_API_KEY, AZURE_OPENAI_API_KEY, and
-AZURE_OPENAI_ENDPOINT in the environment (.env).
+Requires QDRANT_URL, QDRANT_API_KEY, and OPENAI_API_KEY in the
+environment (.env).
 """
 from __future__ import annotations
 

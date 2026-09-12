@@ -34,7 +34,7 @@ def test_get_trip_audit_trail_aggregates_the_expense_audit_shape():
     store.record_event(trace_id, "request_received", {"request": {"employee_id": "employee-ic-001"}})
     store.record_event(trace_id, "flight_node_complete", {"result": {"flight_search": {"fares": [fare]}}})
     store.record_event(trace_id, "approval_auto_approved", {"status": "auto_approved", "approved_by": None, "fare": fare})
-    store.record_event(trace_id, "llm_call_cost", {"agent": "FlightAgent", "model": "claude-sonnet-5", "cost_usd": 0.002})
+    store.record_event(trace_id, "llm_call_cost", {"agent": "FlightAgent", "model": "gpt-4.1", "cost_usd": 0.002})
     store.record_event(trace_id, "business_cost_recorded", {"fare_price_usd": 389.0})
 
     trail = store.get_trip_audit_trail(trace_id)

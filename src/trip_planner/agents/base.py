@@ -11,8 +11,8 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 
-from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessage
+from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 
 from trip_planner.config_loader import model_prices_config
@@ -41,9 +41,9 @@ class AllowListedReActAgent(ABC):
                 f"{type(self).__name__} was given tools outside its allow-list: {disallowed}"
             )
         self.tools = tools
-        self.model_name = model_name or model_prices_config().get("default_model", "claude-sonnet-5")
+        self.model_name = model_name or model_prices_config().get("default_model", "gpt-4.1")
         self._runnable = create_react_agent(
-            ChatAnthropic(model=self.model_name),
+            ChatOpenAI(model=self.model_name),
             tools=self.tools,
             prompt=self.SYSTEM_PROMPT,
         )

@@ -19,7 +19,8 @@ from trip_planner.api.auth import EmployeeIdentity, resolve_identity
 from trip_planner.api.rate_limit import limiter
 from trip_planner.audit.store import get_trip_audit_trail
 from trip_planner.guardrails.approval_gate import get_approval, grant_approval, reject_approval
-from trip_planner.orchestrator.graph import PromptInjectionDetectedError, run_trip_planning
+from trip_planner.guardrails.prompt_injection import PromptInjectionDetectedError
+from trip_planner.orchestrator.graph import run_trip_planning
 from trip_planner.orchestrator.state import TripRequest
 from trip_planner.tools.booking_tools import book_flight_stub
 

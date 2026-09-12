@@ -24,6 +24,7 @@ from trip_planner.agents.tool_messages import parse_tool_message_content
 from trip_planner.audit.store import record_event
 from trip_planner.cache.semantic_cache import SemanticPolicyCache, get_default_cache
 from trip_planner.guardrails.groundedness import check_groundedness
+from trip_planner.guardrails.prompt_injection import reject_if_suspicious
 from trip_planner.guardrails.thresholds import ThresholdEvaluation
 from trip_planner.guardrails.thresholds import evaluate_fare as evaluate_fare_thresholds
 from trip_planner.rag.retriever import Clause, PolicyRetriever
@@ -136,6 +137,8 @@ async def answer_policy_question(
     """General policy Q&A, semantic-cached (spec §3.9) — two differently-
     worded questions about the same clause should both hit, scoped so one
     job level's cached answer never serves another's."""
+    reject_if_suspicious(query, trace_id)  # input guardrail (spec §3.4) — before cache lookup or any LLM call
+
     cache = cache or get_default_cache()
 
     cached = cache.get(query, job_level)

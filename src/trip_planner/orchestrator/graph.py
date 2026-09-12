@@ -22,7 +22,7 @@ from trip_planner.cache import route_cache
 from trip_planner.config_loader import guardrails_config
 from trip_planner.cost import ledger
 from trip_planner.guardrails import approval_gate
-from trip_planner.guardrails.prompt_injection import check_prompt_injection
+from trip_planner.guardrails.prompt_injection import PromptInjectionDetectedError, reject_if_suspicious
 from trip_planner.guardrails.thresholds import next_lower_cabin_class
 from trip_planner.observability.tracing import (
     end_request_trace,
@@ -31,10 +31,6 @@ from trip_planner.observability.tracing import (
     start_request_trace,
 )
 from trip_planner.orchestrator.state import TripRequest, TripState
-
-
-class PromptInjectionDetectedError(Exception):
-    pass
 
 
 def _final_ai_text(messages: list) -> str:
@@ -196,12 +192,7 @@ async def run_trip_planning(request: TripRequest, trace_id: str | None = None) -
     rejected, never handed to an agent."""
     trace_id = trace_id or str(uuid.uuid4())
 
-    injection_check = check_prompt_injection(request.get("destination_city", ""))
-    if injection_check["is_suspicious"]:
-        record_event(trace_id, "prompt_injection_blocked", {"request": request, "matched": injection_check["matched_patterns"]})
-        raise PromptInjectionDetectedError(
-            f"Request blocked by input guardrail: {injection_check['matched_patterns']}"
-        )
+    reject_if_suspicious(request.get("destination_city", ""), trace_id)
 
     initial_state: TripState = {
         "trace_id": trace_id,

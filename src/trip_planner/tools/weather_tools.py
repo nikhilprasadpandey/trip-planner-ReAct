@@ -3,15 +3,35 @@
 No API key required for either. These are plain async functions — both the
 MCP server (mcp_servers/trip_lookup_server.py) and the offline tests import
 them directly; the MCP server is a thin wrapper that exposes them as tools.
+
+Endpoints are overridable via NOMINATIM_URL / OPEN_METEO_URL (default to
+the public instances) — the public Nominatim instance has a strict usage
+policy meant for light use, and Open-Meteo offers a separate paid/
+higher-volume API at a different base URL; production deployments commonly
+point at a self-hosted Nominatim or the paid Open-Meteo tier instead.
 """
 from __future__ import annotations
 
+import os
 from typing import TypedDict
 
 import httpx
 
-NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
-OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
+_DEFAULT_NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+_DEFAULT_OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
+
+
+def _nominatim_url() -> str:
+    # `or` rather than `.get(key, default)`: .env.example ships these blank
+    # (meaning "use the default"), and a blank-but-present env var is still
+    # a falsy "" here, not an unset key — `.get()` alone would silently
+    # request "" as the URL.
+    return os.environ.get("NOMINATIM_URL") or _DEFAULT_NOMINATIM_URL
+
+
+def _open_meteo_url() -> str:
+    return os.environ.get("OPEN_METEO_URL") or _DEFAULT_OPEN_METEO_URL
+
 
 # Nominatim's usage policy requires a descriptive User-Agent identifying the app.
 _HEADERS = {"User-Agent": "corporate-travel-planner-react/0.1 (internal demo)"}
@@ -45,7 +65,7 @@ async def geocode(city: str) -> GeocodeResult:
     """
     async with httpx.AsyncClient(timeout=_TIMEOUT, headers=_HEADERS) as client:
         resp = await client.get(
-            NOMINATIM_URL,
+            _nominatim_url(),
             params={"q": city, "format": "json", "limit": 1},
         )
         resp.raise_for_status()
@@ -67,7 +87,7 @@ async def get_weather(latitude: float, longitude: float, days: int = 5) -> Weath
     """Fetch a short-range daily forecast for a coordinate via Open-Meteo."""
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         resp = await client.get(
-            OPEN_METEO_URL,
+            _open_meteo_url(),
             params={
                 "latitude": latitude,
                 "longitude": longitude,

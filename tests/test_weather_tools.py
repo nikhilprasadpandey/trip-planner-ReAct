@@ -48,3 +48,41 @@ async def test_get_weather_happy_path():
     assert len(result["forecast"]) == 2
     assert result["forecast"][0]["date"] == "2026-10-01"
     assert result["forecast"][1]["precipitation_probability_pct"] == 40
+
+
+def test_nominatim_url_unset_falls_back_to_public_default(monkeypatch):
+    monkeypatch.delenv("NOMINATIM_URL", raising=False)
+    assert weather_tools._nominatim_url() == weather_tools._DEFAULT_NOMINATIM_URL
+
+
+def test_nominatim_url_blank_falls_back_to_public_default(monkeypatch):
+    """Regression: .env.example ships this blank (meaning "use the
+    default") — a blank-but-present env var is still falsy, not unset, so
+    a plain os.environ.get(key, default) would silently request ""."""
+    monkeypatch.setenv("NOMINATIM_URL", "")
+    assert weather_tools._nominatim_url() == weather_tools._DEFAULT_NOMINATIM_URL
+
+
+def test_nominatim_url_override_is_respected(monkeypatch):
+    monkeypatch.setenv("NOMINATIM_URL", "https://nominatim.example.internal/search")
+    assert weather_tools._nominatim_url() == "https://nominatim.example.internal/search"
+
+
+def test_open_meteo_url_blank_falls_back_to_public_default(monkeypatch):
+    monkeypatch.setenv("OPEN_METEO_URL", "")
+    assert weather_tools._open_meteo_url() == weather_tools._DEFAULT_OPEN_METEO_URL
+
+
+def test_open_meteo_url_override_is_respected(monkeypatch):
+    monkeypatch.setenv("OPEN_METEO_URL", "https://open-meteo.example.internal/v1/forecast")
+    assert weather_tools._open_meteo_url() == "https://open-meteo.example.internal/v1/forecast"
+
+
+async def test_geocode_uses_the_configured_url(monkeypatch):
+    monkeypatch.setenv("NOMINATIM_URL", "https://nominatim.example.internal/search")
+    with respx.mock(base_url="https://nominatim.example.internal") as mock:
+        mock.get("/search").mock(
+            return_value=Response(200, json=[{"lat": "1.0", "lon": "2.0", "display_name": "Test"}])
+        )
+        result = await weather_tools.geocode("Somewhere")
+    assert result["latitude"] == 1.0

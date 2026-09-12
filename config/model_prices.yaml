@@ -29,7 +29,10 @@ models:
     cache_write_per_1m_usd: 1.25
     cache_read_per_1m_usd: 0.10
 
-# Embeddings (Policy Agent RAG) run locally via sentence-transformers by
-# default — $0 marginal cost, not tracked in the ledger. If swapped for a
-# hosted embedding API later, add its per-1M-token rate here under its own
-# key and wire it into ledger.py.
+# Embeddings (Policy Agent RAG) use OpenAI text-embedding-3-small
+# ($0.02 / 1M tokens as of 2026-06-24 — verify before relying on this
+# financially). This is the one non-Anthropic API call in the system;
+# everything else (LLM calls, agents) stays on Anthropic Claude.
+embeddings:
+  text-embedding-3-small:
+    input_per_1m_usd: 0.02

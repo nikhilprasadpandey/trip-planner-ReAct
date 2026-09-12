@@ -1,0 +1,13 @@
+{
+  "pagination": {"limit": 100, "offset": 0, "count": 1, "total": 1},
+  "data": [
+    {
+      "flight_date": "2026-10-01",
+      "flight_status": "scheduled",
+      "departure": {"iata": "SFO"},
+      "arrival": {"iata": "AUS"},
+      "airline": {"name": "United Airlines", "iata": "UA"},
+      "flight": {"number": "1234", "iata": "UA1234"}
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "data": {
+    "id": "orq_test_00001",
+    "offers": [
+      {
+        "id": "off_test_00001",
+        "total_amount": "412.30",
+        "total_currency": "USD",
+        "owner": {"iata_code": "AA", "name": "American Airlines"},
+        "conditions": {"change_before_departure": {"allowed": true}}
+      },
+      {
+        "id": "off_test_00002",
+        "total_amount": "389.00",
+        "total_currency": "USD",
+        "owner": {"iata_code": "DL", "name": "Delta Air Lines"},
+        "conditions": {"change_before_departure": {"allowed": false}}
+      }
+    ]
+  }
+}

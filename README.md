@@ -6,12 +6,13 @@ corporate travel policy (Qdrant RAG, scoped by job level), and routes
 anything out-of-policy for human approval before booking.
 
 Full spec: [`enterprise_agent_build_spec.md`](enterprise_agent_build_spec.md).
-Architecture docs: [`docs/`](docs/) (added in build milestone M4).
+Architecture docs: [`docs/architecture.md`](docs/architecture.md) ·
+[`docs/HLD.md`](docs/HLD.md) · [`docs/LLD.md`](docs/LLD.md) ·
+[`docs/runbook_audit_trace.md`](docs/runbook_audit_trace.md).
 
-> **Status**: M0–M3 complete (core flow, enterprise policy/guardrails/booking,
-> dual cost ledger, caching, and the SQLAlchemy audit store). M4 (architecture
-> diagram, HLD, LLD, runbook) is next. See `enterprise_agent_build_spec.md`
-> and the approved build plan for the full M0–M4 sequence.
+> **Status**: M0–M4 complete (core flow, enterprise policy/guardrails/booking,
+> dual cost ledger, caching, the SQLAlchemy audit store, and architecture docs).
+> See `enterprise_agent_build_spec.md` for the full spec this was built against.
 
 ## Stack
 

@@ -16,8 +16,10 @@ from langgraph.graph import END, StateGraph
 from trip_planner.agents.flight_agent import build_flight_agent
 from trip_planner.agents.policy_agent import evaluate_fare
 from trip_planner.agents.weather_agent import build_weather_agent
-from trip_planner.audit.jsonl_sink import record_event
+from trip_planner.audit.store import record_event
+from trip_planner.cache import route_cache
 from trip_planner.config_loader import guardrails_config
+from trip_planner.cost import ledger
 from trip_planner.guardrails import approval_gate
 from trip_planner.guardrails.prompt_injection import check_prompt_injection
 from trip_planner.guardrails.thresholds import next_lower_cabin_class
@@ -57,7 +59,8 @@ async def weather_node(state: TripState) -> dict:
     agent = await build_weather_agent()
     result = await agent.ainvoke(
         f"Look up the weather for a trip to {request['destination_city']} "
-        f"around {request['departure_date']}."
+        f"around {request['departure_date']}.",
+        trace_id=state["trace_id"],
     )
     messages = result["messages"]
     updates: dict = {}
@@ -73,11 +76,21 @@ async def weather_node(state: TripState) -> dict:
 
 async def flight_node(state: TripState) -> dict:
     request = state["request"]
+    trace_id = state["trace_id"]
+    cabin_class = request.get("cabin_class", "economy")
+
+    cached = route_cache.get(request["origin_airport"], request["destination_airport"], request["departure_date"], cabin_class)
+    if cached is not None:
+        record_event(trace_id, "route_cache_hit", {"request": request, "agent_cost_saved_usd": cached["agent_cost_saved_usd"]})
+        log_span(trace_id, "cache:route_hit", input=request, output={"agent_cost_saved_usd": cached["agent_cost_saved_usd"]})
+        return {"flight_search": cached["result"]}
+
+    cost_before = ledger.get_ledger(trace_id)["agent_cost_usd"]
     agent = await build_flight_agent()
     result = await agent.ainvoke(
         f"Find fares from {request['origin_airport']} to {request['destination_airport']} "
-        f"on {request['departure_date']}, cabin class "
-        f"{request.get('cabin_class', 'economy')}."
+        f"on {request['departure_date']}, cabin class {cabin_class}.",
+        trace_id=trace_id,
     )
     messages = result["messages"]
     updates: dict = {}
@@ -86,9 +99,12 @@ async def flight_node(state: TripState) -> dict:
         if fares.get("available") is False:
             updates["status"] = "degraded"
             updates["errors"] = [*state.get("errors", []), fares.get("reason", "flight search unavailable")]
+        elif fares.get("available"):
+            call_cost = ledger.get_ledger(trace_id)["agent_cost_usd"] - cost_before
+            route_cache.set(request["origin_airport"], request["destination_airport"], request["departure_date"], cabin_class, fares, call_cost)
 
-    record_event(state["trace_id"], "flight_node_complete", {"request": request, "result": updates})
-    log_span(state["trace_id"], "agent:flight", input=request, output=updates)
+    record_event(trace_id, "flight_node_complete", {"request": request, "result": updates})
+    log_span(trace_id, "agent:flight", input=request, output=updates)
     return updates
 
 
@@ -112,6 +128,7 @@ async def policy_check_node(state: TripState) -> dict:
     evaluation = await evaluate_fare(
         job_level=request["job_level"],
         fare=cheapest_fare,
+        trace_id=trace_id,
         is_international=request.get("is_international", False),
     )
     log_span(trace_id, "agent:policy", input=cheapest_fare, output=evaluation)
@@ -186,6 +203,11 @@ async def run_trip_planning(request: TripRequest, trace_id: str | None = None) -
 
     final_state = await build_graph().ainvoke(initial_state)
 
+    approval = final_state.get("approval") or {}
+    if approval.get("fare"):
+        ledger.record_business_cost(trace_id, approval["fare"]["price_usd"])
+    final_state["cost"] = ledger.get_ledger(trace_id)
+
     record_event(trace_id, "request_completed", {"status": final_state.get("status", "ok")})
-    end_request_trace(trace_id, output={"status": final_state.get("status", "ok"), "approval": final_state.get("approval")})
+    end_request_trace(trace_id, output={"status": final_state.get("status", "ok"), "approval": approval})
     return final_state

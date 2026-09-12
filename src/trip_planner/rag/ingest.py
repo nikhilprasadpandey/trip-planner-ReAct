@@ -134,6 +134,11 @@ def ingest(corpus_path: Path = CORPUS_PATH, collection_name: str | None = None) 
         for section, vector in zip(parsed.sections, vectors)
     ]
     client.upsert(collection_name=collection_name, points=points)
+
+    from trip_planner.cache.semantic_cache import get_default_cache
+
+    get_default_cache().invalidate_all()  # every cached policy answer may now be stale (spec §3.9)
+
     return len(points)
 
 

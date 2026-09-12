@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Literal, TypedDict
 
-from trip_planner.audit.jsonl_sink import record_event
+from trip_planner.audit.store import record_event
 
 ApprovalStatus = Literal["auto_approved", "pending", "approved", "rejected"]
 

@@ -31,6 +31,7 @@ class TripState(TypedDict):
     policy_evaluation: NotRequired[dict]
     approval: NotRequired[dict]
     reflection_count: NotRequired[int]   # how many times Policy->Flight reflection has looped (spec §3.1)
+    cost: NotRequired[dict]              # dual cost ledger snapshot (spec §3.5), attached at request completion
 
     status: NotRequired[str]            # "ok" | "degraded" | "error"
     errors: NotRequired[list[str]]

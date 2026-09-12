@@ -21,6 +21,8 @@ from typing import TypedDict
 from langchain_core.messages import ToolMessage
 
 from trip_planner.agents.base import AllowListedReActAgent
+from trip_planner.audit.store import record_event
+from trip_planner.cache.semantic_cache import SemanticPolicyCache, get_default_cache
 from trip_planner.guardrails.groundedness import check_groundedness
 from trip_planner.guardrails.thresholds import ThresholdEvaluation
 from trip_planner.guardrails.thresholds import evaluate_fare as evaluate_fare_thresholds
@@ -35,6 +37,14 @@ class PolicyEvaluation(TypedDict):
     explanation: str
     grounded: bool
     cited_section_ids: list[str]
+
+
+class PolicyQuestionAnswer(TypedDict):
+    answer: str
+    grounded: bool
+    cited_section_ids: list[str]
+    retrieved_clauses: list[Clause]
+    cache_hit: bool
 
 
 class PolicyAgent(AllowListedReActAgent):
@@ -85,6 +95,7 @@ def _final_answer_text(messages: list) -> str:
 async def evaluate_fare(
     job_level: str,
     fare: dict,
+    trace_id: str,
     is_international: bool = False,
     retriever: PolicyRetriever | None = None,
 ) -> PolicyEvaluation:
@@ -100,7 +111,8 @@ async def evaluate_fare(
     result = await agent.ainvoke(
         f"Fare: {fare['carrier']} {fare['cabin_class']} at ${fare['price_usd']:.2f}. "
         f"Is this within the employee's policy? The applicable cap is "
-        f"${threshold['cap_usd']:.2f}."
+        f"${threshold['cap_usd']:.2f}.",
+        trace_id=trace_id,
     )
     messages = result["messages"]
 
@@ -117,3 +129,41 @@ async def evaluate_fare(
         grounded=groundedness["is_grounded"],
         cited_section_ids=groundedness["cited_section_ids"],
     )
+
+
+async def answer_policy_question(
+    query: str,
+    job_level: str,
+    trace_id: str,
+    retriever: PolicyRetriever | None = None,
+    cache: SemanticPolicyCache | None = None,
+) -> PolicyQuestionAnswer:
+    """General policy Q&A, semantic-cached (spec §3.9) — two differently-
+    worded questions about the same clause should both hit, scoped so one
+    job level's cached answer never serves another's."""
+    cache = cache or get_default_cache()
+
+    cached = cache.get(query, job_level)
+    if cached is not None:
+        record_event(trace_id, "semantic_cache_hit", {"query": query, "job_level": job_level})
+        return PolicyQuestionAnswer(**{**cached, "cache_hit": True})
+
+    agent = await build_policy_agent(job_level, retriever=retriever)
+    result = await agent.ainvoke(query, trace_id=trace_id)
+    messages = result["messages"]
+
+    retrieved_clauses = _extract_retrieved_clauses(messages)
+    answer_text = _final_answer_text(messages)
+    retrieved_ids = [c["section_id"] for c in retrieved_clauses]
+    groundedness = check_groundedness(answer_text, retrieved_ids)
+
+    answer = PolicyQuestionAnswer(
+        answer=answer_text,
+        grounded=groundedness["is_grounded"],
+        cited_section_ids=groundedness["cited_section_ids"],
+        retrieved_clauses=retrieved_clauses,
+        cache_hit=False,
+    )
+    cache.set(query, job_level, {**answer, "cache_hit": False})
+    record_event(trace_id, "semantic_cache_miss", {"query": query, "job_level": job_level})
+    return answer

@@ -12,9 +12,11 @@ import os
 from abc import ABC, abstractmethod
 
 from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import AIMessage
 from langgraph.prebuilt import create_react_agent
 
 from trip_planner.config_loader import model_prices_config
+from trip_planner.cost.ledger import record_llm_usage
 
 
 class ToolNotAllowedError(Exception):
@@ -46,10 +48,34 @@ class AllowListedReActAgent(ABC):
             prompt=self.SYSTEM_PROMPT,
         )
 
-    async def ainvoke(self, user_message: str) -> dict:
+    async def ainvoke(self, user_message: str, trace_id: str | None = None) -> dict:
         """Run the ReAct loop for one request; returns the final graph state
-        (has a `messages` list — the last message is the agent's answer)."""
-        return await self._runnable.ainvoke({"messages": [{"role": "user", "content": user_message}]})
+        (has a `messages` list — the last message is the agent's answer).
+
+        When `trace_id` is given, records this call's token cost against the
+        dual cost ledger (spec §3.5) — centralized here so every agent's
+        agent-operating cost is tracked the same way, without each
+        orchestrator node having to do it itself."""
+        result = await self._runnable.ainvoke({"messages": [{"role": "user", "content": user_message}]})
+        if trace_id is not None:
+            self._record_cost(trace_id, result["messages"])
+        return result
+
+    def _record_cost(self, trace_id: str, messages: list) -> None:
+        input_tokens = output_tokens = cache_read_tokens = 0
+        for message in messages:
+            if not isinstance(message, AIMessage):
+                continue
+            usage = getattr(message, "usage_metadata", None) or {}
+            input_tokens += usage.get("input_tokens", 0)
+            output_tokens += usage.get("output_tokens", 0)
+            cache_read_tokens += (usage.get("input_token_details") or {}).get("cache_read", 0)
+
+        if input_tokens or output_tokens:
+            record_llm_usage(
+                trace_id, type(self).__name__, self.model_name,
+                input_tokens=input_tokens, output_tokens=output_tokens, cache_read_tokens=cache_read_tokens,
+            )
 
     @classmethod
     @abstractmethod

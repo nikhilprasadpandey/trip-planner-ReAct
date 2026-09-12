@@ -8,7 +8,7 @@ shape against whichever `langfuse` version is pinned in pyproject.toml
 before relying on this for real observability; the defensive try/except
 wrapping is deliberate because that shape isn't pinned down here.
 
-Keyed by trace_id — the same id used in the audit sink (audit/jsonl_sink.py)
+Keyed by trace_id — the same id used in the audit store (audit/store.py)
 and returned to the API caller, so a single id reconstructs the full story
 across both systems (spec §8 acceptance criteria).
 """

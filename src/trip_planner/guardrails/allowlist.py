@@ -10,7 +10,7 @@ silently call something outside its allow-list.
 """
 from __future__ import annotations
 
-from trip_planner.audit.jsonl_sink import record_event
+from trip_planner.audit.store import record_event
 
 
 class ToolNotAllowedError(Exception):

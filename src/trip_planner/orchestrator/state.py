@@ -17,6 +17,7 @@ class TripRequest(TypedDict):
     destination_airport: str    # IATA code
     departure_date: str         # ISO date
     cabin_class: NotRequired[str]
+    is_international: NotRequired[bool]
 
 
 class TripState(TypedDict):
@@ -27,9 +28,9 @@ class TripState(TypedDict):
     weather: NotRequired[dict]
     flight_search: NotRequired[dict]
 
-    # Populated in M2 once the Policy Agent lands.
     policy_evaluation: NotRequired[dict]
     approval: NotRequired[dict]
+    reflection_count: NotRequired[int]   # how many times Policy->Flight reflection has looped (spec §3.1)
 
     status: NotRequired[str]            # "ok" | "degraded" | "error"
     errors: NotRequired[list[str]]

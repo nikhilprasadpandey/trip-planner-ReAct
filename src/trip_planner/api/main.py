@@ -14,7 +14,7 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from trip_planner.api.auth import EmployeeIdentity, resolve_identity
 from trip_planner.api.rate_limit import limiter
-from trip_planner.orchestrator.graph import run_trip_planning
+from trip_planner.orchestrator.graph import PromptInjectionDetectedError, run_trip_planning
 from trip_planner.orchestrator.state import TripRequest
 
 app = FastAPI(title="Corporate Travel Planner — API Gateway")
@@ -29,12 +29,20 @@ async def _rate_limit_handler(request, exc):  # pragma: no cover - slowapi wirin
     return JSONResponse(status_code=429, content={"detail": "rate limit exceeded"})
 
 
+@app.exception_handler(PromptInjectionDetectedError)
+async def _prompt_injection_handler(request, exc):
+    from starlette.responses import JSONResponse
+
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+
 class TripRequestIn(BaseModel):
     destination_city: str
     origin_airport: str
     destination_airport: str
     departure_date: str
     cabin_class: str = "economy"
+    is_international: bool = False
 
 
 @app.get("/health")
@@ -57,6 +65,7 @@ async def create_trip_request(
         "destination_airport": body.destination_airport.upper(),
         "departure_date": body.departure_date,
         "cabin_class": body.cabin_class,
+        "is_international": body.is_international,
     }
     final_state = await run_trip_planning(trip_request)
     return final_state

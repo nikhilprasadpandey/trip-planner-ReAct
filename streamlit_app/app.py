@@ -66,6 +66,28 @@ if submitted:
         reason = (flights or {}).get("reason", "unknown")
         st.warning(f"Pricing unavailable: {reason}")
 
+    policy = result.get("policy_evaluation")
+    approval = result.get("approval")
+    if policy and not policy.get("skipped"):
+        st.subheader("📋 Policy evaluation")
+        threshold = policy.get("threshold", {})
+        if threshold.get("within_policy"):
+            st.success(f"Within policy — cap ${threshold.get('cap_usd', 0):.2f}.")
+        else:
+            st.warning(f"Out of policy — cap ${threshold.get('cap_usd', 0):.2f}.")
+        st.caption(policy.get("explanation", ""))
+        if not policy.get("grounded", True):
+            st.caption("⚠️ Explanation did not cite a retrieved policy clause — treat the ruling above (not the LLM's prose) as authoritative.")
+
+    if approval:
+        status = approval.get("status")
+        if status == "auto_approved":
+            st.success("✅ Auto-approved — within policy.")
+        elif status == "pending":
+            st.warning(f"⏳ Pending approval from: {approval.get('approver_role')}")
+        elif status == "not_applicable":
+            st.info("No fare was available to evaluate against policy.")
+
     if result.get("status") == "degraded":
         st.warning("This request completed in a degraded state — see errors below.")
         st.json(result.get("errors", []))

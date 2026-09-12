@@ -13,12 +13,17 @@ from functools import lru_cache
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
-# Server registry: name -> stdio launch spec. Add booking_server here once M2
-# lands (kept separate/higher-scrutiny per spec — the one mutating server).
+# Server registry: name -> stdio launch spec. `booking` is kept separate
+# and higher-scrutiny per spec §3.7 — the one mutating server.
 _SERVERS = {
     "free_tools": {
         "command": sys.executable,
         "args": ["-m", "trip_planner.mcp_servers.free_tools_server"],
+        "transport": "stdio",
+    },
+    "booking": {
+        "command": sys.executable,
+        "args": ["-m", "trip_planner.mcp_servers.booking_server"],
         "transport": "stdio",
     },
 }

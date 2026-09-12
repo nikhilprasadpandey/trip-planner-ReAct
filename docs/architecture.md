@@ -46,14 +46,14 @@ flowchart TB
     PA -. "reflection: cheaper/lower-cabin retry" .-> FA
 
     subgraph MCP["MCP servers"]
-        FreeTools["free-tools server\ngeocode · get_weather · search_flights"]
+        TripLookup["trip-lookup server\ngeocode · get_weather · search_flights"]
         Booking["booking server\nbook_flight (approval-gated)"]
     end
 
-    WA --> FreeTools
-    FA --> FreeTools
-    FreeTools -->|Nominatim + Open-Meteo| Weather[("Weather/Geocoding\n(free APIs)")]
-    FreeTools -->|Duffel test / Aviationstack live| Flights[("Flight pricing\n(provider-swappable)")]
+    WA --> TripLookup
+    FA --> TripLookup
+    TripLookup -->|Nominatim + Open-Meteo| Weather[("Weather/Geocoding\n(free APIs)")]
+    TripLookup -->|Duffel test / Aviationstack live| Flights[("Flight pricing\n(provider-swappable)")]
 
     PA --> RAG["Policy retrieval tool\n(job_level baked in, not LLM-fillable)"]
     RAG --> Qdrant[("Qdrant Cloud\npolicy corpus, job-level filtered")]
@@ -127,7 +127,7 @@ sequenceDiagram
 | Orchestrator | LangGraph state machine: dependency order + reflection loop | `src/trip_planner/orchestrator/graph.py` |
 | Weather / Flight Agent | Tool-scoped ReAct agents, MCP-backed tools | `src/trip_planner/agents/weather_agent.py`, `flight_agent.py` |
 | Policy Agent | Deterministic ruling + grounded LLM explanation, RAG-backed | `src/trip_planner/agents/policy_agent.py` |
-| MCP servers | Tool-hosting boundary: free-tools (read) vs. booking (the one write action) | `src/trip_planner/mcp_servers/` |
+| MCP servers | Tool-hosting boundary: trip-lookup (read) vs. booking (the one write action) | `src/trip_planner/mcp_servers/` |
 | RAG | Job-level-scoped Qdrant retrieval over the policy corpus | `src/trip_planner/rag/` |
 | Guardrails | Allow-list, prompt-injection, groundedness, thresholds, approval gate | `src/trip_planner/guardrails/` |
 | Cache | Route cache (exact-match) + semantic cache (policy Q&A) | `src/trip_planner/cache/` |

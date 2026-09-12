@@ -92,8 +92,8 @@ async def _search_duffel(origin: str, destination: str, departure_date: str, cab
         # pydantic, and a raw bool there fails that validation (caught live;
         # calling search_flights() directly in tests bypasses that
         # validation layer entirely, so a plain unit test won't catch this
-        # class of bug — see test_free_tools_server.py for a test that goes
-        # through the actual MCP-registered tool instead).
+        # class of bug — see tests/test_flight_tools.py's
+        # _assert_mcp_would_accept, which re-applies that same schema check).
         changes_allowed = change_rule.get("allowed")
         if changes_allowed is None:
             fare_rules = "unknown"

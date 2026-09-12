@@ -1,7 +1,7 @@
 """Geocoding + weather, via the free Nominatim and Open-Meteo APIs.
 
 No API key required for either. These are plain async functions — both the
-MCP server (mcp_servers/free_tools_server.py) and the offline tests import
+MCP server (mcp_servers/trip_lookup_server.py) and the offline tests import
 them directly; the MCP server is a thin wrapper that exposes them as tools.
 """
 from __future__ import annotations

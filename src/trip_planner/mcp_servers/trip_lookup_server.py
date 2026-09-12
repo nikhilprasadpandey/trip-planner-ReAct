@@ -1,11 +1,12 @@
-"""MCP server #1 (spec §3.2a): geocode, get_weather, search_flights.
+"""MCP server #1 (spec §3.2a): geocode, get_weather, search_flights — the
+read-only lookups a trip request needs before anything gets booked.
 
 Read-only tools only — no mutating action lives here (that's the separate
 booking_server.py, deliberately isolated so the one write action in the
 system is easy to reason about and gate).
 
 Run standalone for local testing:
-    python -m trip_planner.mcp_servers.free_tools_server
+    python -m trip_planner.mcp_servers.trip_lookup_server
 Agents normally reach this via mcp_servers/mcp_client.py, which spawns it
 over stdio.
 """
@@ -23,7 +24,7 @@ from trip_planner.tools.weather_tools import (
     get_weather as _get_weather,
 )
 
-mcp = FastMCP("free-tools")
+mcp = FastMCP("trip-lookup")
 
 
 @mcp.tool()

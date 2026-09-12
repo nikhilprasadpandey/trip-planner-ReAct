@@ -2,7 +2,7 @@
 
 Exposes a single mutating tool, `book_flight` — the one write action in the
 whole system. Deliberately isolated in its own server (higher-trust,
-higher-scrutiny per spec §3.7): the free-tools server never has access to
+higher-scrutiny per spec §3.7): the trip-lookup server never has access to
 this, and this server never needs flight-search or weather logic.
 
 `book_flight` never books anything without an approval record for the given

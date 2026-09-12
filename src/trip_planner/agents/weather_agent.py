@@ -28,7 +28,7 @@ class WeatherAgent(AllowListedReActAgent):
 
     @classmethod
     def mcp_server_name(cls) -> str:
-        return "free_tools"
+        return "trip_lookup"
 
 
 async def build_weather_agent() -> WeatherAgent:

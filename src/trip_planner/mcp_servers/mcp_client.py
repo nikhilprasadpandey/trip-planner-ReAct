@@ -4,7 +4,7 @@ only through MCP, per spec §3.2.
 
 Usage:
     client = build_mcp_client()
-    tools = await client.get_tools(server_name="free_tools")
+    tools = await client.get_tools(server_name="trip_lookup")
 """
 from __future__ import annotations
 
@@ -16,9 +16,9 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 # Server registry: name -> stdio launch spec. `booking` is kept separate
 # and higher-scrutiny per spec §3.7 — the one mutating server.
 _SERVERS = {
-    "free_tools": {
+    "trip_lookup": {
         "command": sys.executable,
-        "args": ["-m", "trip_planner.mcp_servers.free_tools_server"],
+        "args": ["-m", "trip_planner.mcp_servers.trip_lookup_server"],
         "transport": "stdio",
     },
     "booking": {

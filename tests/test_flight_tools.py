@@ -16,7 +16,7 @@ from trip_planner.tools.flight_tools import FlightSearchResult
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
-# The MCP server (mcp_servers/free_tools_server.py) validates search_flights'
+# The MCP server (mcp_servers/trip_lookup_server.py) validates search_flights'
 # return value against this exact schema before it ever reaches an agent —
 # calling flight_tools.search_flights() directly, as every test below does,
 # bypasses that validation. _assert_mcp_would_accept re-applies it, so a

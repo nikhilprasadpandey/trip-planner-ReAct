@@ -28,7 +28,7 @@ src/trip_planner/
   orchestrator/           LangGraph state graph (planning + ReAct + reflection)
   agents/                 Orchestrator / Flight / Weather / Policy agents
   tools/                  LangChain tools (flight, weather, policy, booking)
-  mcp_servers/            MCP servers: free-tools (geocode/weather/flights),
+  mcp_servers/            MCP servers: trip-lookup (geocode/weather/flights),
                           booking (book_flight, approval-gated)
   rag/                    Qdrant ingestion + retrieval, policy corpus
   guardrails/             approval gate, prompt-injection, groundedness, allowlist,
@@ -65,7 +65,7 @@ the app runs fine without them (SQLite + no tracing).
 python scripts/seed_policy_corpus.py
 
 # 2. MCP servers
-python -m trip_planner.mcp_servers.free_tools_server
+python -m trip_planner.mcp_servers.trip_lookup_server
 python -m trip_planner.mcp_servers.booking_server
 
 # 3. API gateway

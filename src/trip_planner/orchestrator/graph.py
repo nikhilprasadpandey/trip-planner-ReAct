@@ -86,7 +86,7 @@ async def flight_node(state: TripState) -> dict:
     trace_id = state["trace_id"]
     cabin_class = request.get("cabin_class", "economy")
 
-    cached = route_cache.get(request["origin_airport"], request["destination_airport"], request["departure_date"], cabin_class)
+    cached = await route_cache.get(request["origin_airport"], request["destination_airport"], request["departure_date"], cabin_class)
     if cached is not None:
         record_event(trace_id, "route_cache_hit", {"request": request, "agent_cost_saved_usd": cached["agent_cost_saved_usd"]})
         log_span(trace_id, "cache:route_hit", input=request, output={"agent_cost_saved_usd": cached["agent_cost_saved_usd"]})
@@ -108,7 +108,7 @@ async def flight_node(state: TripState) -> dict:
             updates["errors"] = [*state.get("errors", []), fares.get("reason", "flight search unavailable")]
         elif fares.get("available"):
             call_cost = ledger.get_ledger(trace_id)["agent_cost_usd"] - cost_before
-            route_cache.set(request["origin_airport"], request["destination_airport"], request["departure_date"], cabin_class, fares, call_cost)
+            await route_cache.set(request["origin_airport"], request["destination_airport"], request["departure_date"], cabin_class, fares, call_cost)
 
     record_event(trace_id, "flight_node_complete", {"request": request, "result": updates})
     log_span(trace_id, "agent:flight", input=request, output=updates)

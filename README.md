@@ -23,7 +23,7 @@ Working conventions for anyone (human or Claude Code) editing this repo:
 ## Stack
 
 Python 3.13 · LangChain · LangGraph · FastAPI · Streamlit · Qdrant · MCP ·
-Langfuse · SQLAlchemy · OpenAI (`gpt-4.1` + `text-embedding-3-small`)
+Langfuse · SQLAlchemy · Redis (optional) · OpenAI (`gpt-4.1` + `text-embedding-3-small`)
 
 ## Project layout
 
@@ -78,6 +78,7 @@ for real; everything else has a working default or is optional.
 | `OPEN_METEO_URL` | No | public Open-Meteo | Override for Open-Meteo's paid/higher-volume tier |
 | `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` | No | — | Enables Langfuse tracing; unset = tracing silently no-ops |
 | `LANGFUSE_HOST` | No | `https://cloud.langfuse.com` | Langfuse region/self-hosted endpoint |
+| `REDIS_URL` | No | — | Route cache backend (`cache/route_cache.py`); unset = falls back to an in-process cache. Semantic Q&A cache always stays in-process regardless |
 | `AUDIT_DB_URL` | No | `sqlite:///./data/audit.db` | Swap for `postgresql+psycopg://user:pass@host:5432/dbname` in prod — no code change either way |
 | `MOCK_AUTH_ENABLED` | No | `true` | Real OIDC isn't wired up yet (see FAQ) — must stay `true` for now |
 | `API_GATEWAY_URL` | No | `http://localhost:8000` | Where the Streamlit UI looks for the API gateway |

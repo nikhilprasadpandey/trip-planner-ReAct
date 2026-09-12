@@ -1,34 +1,57 @@
 """Exact-match route cache (spec §3.9, §8): a repeated identical route
 search must be served from cache with zero additional flight-API/agent
-calls — verified here at the cache-storage level."""
+calls — verified here at the cache-storage level.
+
+Runs against the in-memory fallback backend — conftest.py unsets REDIS_URL
+for the whole test session, so these never touch a real Redis instance
+even though one is configured for the live app."""
 from __future__ import annotations
 
 from trip_planner.cache import route_cache
 
 
-def test_miss_then_hit_returns_stored_result_and_saved_cost():
-    assert route_cache.get("SFO", "AUS", "2026-10-01", "economy") is None
+async def test_miss_then_hit_returns_stored_result_and_saved_cost():
+    assert await route_cache.get("SFO", "AUS", "2026-10-01", "economy") is None
 
     fares = {"available": True, "fares": [{"carrier": "AA", "price_usd": 400}]}
-    route_cache.set("SFO", "AUS", "2026-10-01", "economy", fares, agent_cost_usd=0.004)
+    await route_cache.set("SFO", "AUS", "2026-10-01", "economy", fares, agent_cost_usd=0.004)
 
-    entry = route_cache.get("SFO", "AUS", "2026-10-01", "economy")
+    entry = await route_cache.get("SFO", "AUS", "2026-10-01", "economy")
     assert entry is not None
     assert entry["result"] == fares
     assert entry["agent_cost_saved_usd"] == 0.004
 
 
-def test_cache_key_is_case_insensitive_on_airport_codes():
+async def test_cache_key_is_case_insensitive_on_airport_codes():
     fares = {"available": True, "fares": []}
-    route_cache.set("sfo", "aus", "2026-10-01", "economy", fares, agent_cost_usd=0.001)
-    assert route_cache.get("SFO", "AUS", "2026-10-01", "economy") is not None
+    await route_cache.set("sfo", "aus", "2026-10-01", "economy", fares, agent_cost_usd=0.001)
+    assert await route_cache.get("SFO", "AUS", "2026-10-01", "economy") is not None
 
 
-def test_different_cabin_class_is_a_different_cache_entry():
-    route_cache.set("SFO", "AUS", "2026-10-01", "economy", {"fares": ["e"]}, agent_cost_usd=0.001)
-    assert route_cache.get("SFO", "AUS", "2026-10-01", "business") is None
+async def test_different_cabin_class_is_a_different_cache_entry():
+    await route_cache.set("SFO", "AUS", "2026-10-01", "economy", {"fares": ["e"]}, agent_cost_usd=0.001)
+    assert await route_cache.get("SFO", "AUS", "2026-10-01", "business") is None
 
 
-def test_different_date_is_a_different_cache_entry():
-    route_cache.set("SFO", "AUS", "2026-10-01", "economy", {"fares": ["a"]}, agent_cost_usd=0.001)
-    assert route_cache.get("SFO", "AUS", "2026-10-02", "economy") is None
+async def test_different_date_is_a_different_cache_entry():
+    await route_cache.set("SFO", "AUS", "2026-10-01", "economy", {"fares": ["a"]}, agent_cost_usd=0.001)
+    assert await route_cache.get("SFO", "AUS", "2026-10-02", "economy") is None
+
+
+async def test_uses_in_memory_backend_when_redis_url_unset(monkeypatch):
+    monkeypatch.delenv("REDIS_URL", raising=False)
+    route_cache._reset_backend_for_tests()
+    assert isinstance(route_cache._get_backend(), route_cache._InMemoryBackend)
+
+
+async def test_selects_redis_backend_when_redis_url_set(monkeypatch):
+    """Doesn't require a real Redis server — only checks that the backend
+    selection itself reacts to REDIS_URL; redis.asyncio.from_url() doesn't
+    connect eagerly, it just builds a client object."""
+    monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
+    route_cache._reset_backend_for_tests()
+    try:
+        assert isinstance(route_cache._get_backend(), route_cache._RedisBackend)
+    finally:
+        monkeypatch.delenv("REDIS_URL", raising=False)
+        route_cache._reset_backend_for_tests()

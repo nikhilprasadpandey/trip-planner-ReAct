@@ -190,11 +190,18 @@ fare's `price_usd` — never derived from token cost.
 
 | Cache | Key | Scope rationale |
 |---|---|---|
-| Route cache (`cache/route_cache.py`) | `(origin.upper(), destination.upper(), departure_date, cabin_class)` | Fares aren't identity-scoped — safe to share across employees |
+| Route cache (`cache/route_cache.py`) | `trip_planner:route_cache:{origin.upper()}:{destination.upper()}:{departure_date}:{cabin_class}` | Fares aren't identity-scoped — safe to share across employees |
 | Semantic cache (`cache/semantic_cache.py`) | `job_level` (bucket) + cosine similarity over the query embedding | Job-level-scoped — a cached answer for one tier must never serve another; similarity match only within a tier's bucket |
 
-Route cache TTL: 600s (`cachetools.TTLCache`). Semantic cache similarity
-threshold: 0.92, invalidated wholesale on every `rag/ingest.py` run.
+Route cache TTL: 600s. Backed by real Redis when `REDIS_URL` is set
+(`redis.asyncio`, key-prefixed so `_clear_all()` only ever touches this
+cache's own keys), an in-process `cachetools.TTLCache` otherwise — same
+async `get`/`set` shape either way. Semantic cache similarity threshold:
+0.70 (empirically set — see `cache/semantic_cache.py`'s module docstring
+for the measured numbers behind that choice), invalidated wholesale on
+every `rag/ingest.py` run. The semantic cache stays in-process regardless
+of `REDIS_URL` — similarity search over embeddings doesn't map onto a
+plain Redis GET/SET the way an exact-match lookup does.
 
 ## 7. Test coverage map
 

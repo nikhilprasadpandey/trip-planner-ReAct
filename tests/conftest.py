@@ -11,12 +11,14 @@ from trip_planner import config_loader
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _test_audit_db():
-    """Point the audit store at a throwaway SQLite file for the whole test
-    session, set before anything can lazily create the real engine — tests
-    must never write into data/audit.db."""
+def _test_isolation_env():
+    """Point stateful stores at throwaway/local backends for the whole test
+    session, set before anything can lazily connect to the real thing —
+    tests must never write into data/audit.db or a real Redis instance,
+    even though both are configured for the live app in .env."""
     db_path = Path(tempfile.gettempdir()) / f"trip_planner_test_audit_{uuid.uuid4().hex}.db"
     os.environ["AUDIT_DB_URL"] = f"sqlite:///{db_path.as_posix()}"
+    os.environ.pop("REDIS_URL", None)  # force route_cache's in-memory fallback in tests
     yield
     try:
         db_path.unlink(missing_ok=True)
@@ -25,7 +27,7 @@ def _test_audit_db():
 
 
 @pytest.fixture(autouse=True)
-def _clear_state():
+async def _clear_state():
     """Config is lru_cache'd for the app's lifetime; the audit store, cost
     ledger, approval records, and caches are module-level in-memory/DB state
     — all need a clean slate between tests."""
@@ -38,6 +40,6 @@ def _clear_state():
     audit_store._clear_all()
     ledger._clear_all()
     approval_gate._clear_all()
-    route_cache._clear_all()
+    await route_cache._clear_all()
     yield
     config_loader.clear_cache()

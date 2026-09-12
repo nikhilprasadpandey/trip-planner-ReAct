@@ -88,7 +88,7 @@ be edited after the fact.
 | Concern | Decision | Why |
 |---|---|---|
 | Reliability (flight API) | Provider-swappable + graceful degradation + route cache | Aviationstack's free quota is tiny; Duffel test mode absorbs dev iteration |
-| Scalability | Stateless FastAPI process; in-memory state (approvals, ledger, caches) is process-local | Fine for a demo/single-instance deploy; swap to Redis/Postgres-backed state for horizontal scaling — the *interfaces* (`approval_gate.py`, `route_cache.py`) don't change, only what's behind them |
+| Scalability | Stateless FastAPI process; approvals and the cost ledger are process-local in-memory dicts; the route cache is Redis-backed (real, not just designed-for) when `REDIS_URL` is set, in-process otherwise | The route cache already scales across instances; approvals/ledger are the remaining process-local state — the *interface* (`approval_gate.py`) doesn't change if that moves too, only what's behind it |
 | Multi-tenancy | Job-level scoping today; business-unit scoping would extend `guardrails.yaml` + the Qdrant metadata filter the same way | Matches spec's job-level requirement exactly; same pattern generalizes |
 | Environment separation | `.env` per environment, `AUDIT_DB_URL`/`FLIGHT_PROVIDER` as the two env-driven swaps that matter most | SQLite/Duffel-test locally, Postgres/Aviationstack-live in a demo/prod pass |
 | Auth | Mock persona header today, same interface shape (`resolve_identity` -> `EmployeeIdentity`) a real OIDC client would have | Real IdP/SSO explicitly out of scope for the live build per the spec's sequencing guidance |
@@ -97,8 +97,8 @@ be edited after the fact.
 ## 6. What would change for a production deployment
 
 - `audit/store.py`: point `AUDIT_DB_URL` at Postgres — no code change.
-- `cache/route_cache.py`: swap the in-process `TTLCache` for a Redis client
-  behind the same `get`/`set` shape.
+- `cache/route_cache.py`: already done — set `REDIS_URL` and it's Redis-backed,
+  no code change; unset, it falls back to an in-process cache.
 - `guardrails/approval_gate.py` and `cost/ledger.py`: currently in-memory
   dicts mirrored to the audit store; a production build would read state
   back from the audit store directly instead of trusting process memory,

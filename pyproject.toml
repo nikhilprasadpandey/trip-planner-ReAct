@@ -25,7 +25,8 @@ dependencies = [
     "sqlalchemy>=2.0.0",
     "psycopg[binary]>=3.2.0",   # Postgres driver (AUDIT_DB_URL=postgresql+psycopg://...); SQLite needs none
     # Cache
-    "cachetools>=5.5.0",
+    "cachetools>=5.5.0",     # in-process fallback route cache, and the semantic policy-Q&A cache
+    "redis>=5.0.0",          # route cache backend when REDIS_URL is set (redis.asyncio, bundled)
     # Observability
     "langfuse>=2.53.0",
     # Config / utils

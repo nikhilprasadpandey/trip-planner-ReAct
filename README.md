@@ -16,7 +16,8 @@ map — open it in a browser) ·
 [`docs/example_prompts.md`](docs/example_prompts.md) (full detail behind
 the "Example prompts" section below) ·
 [`docs/Trip Planner Deep Dive.pptx`](<docs/Trip Planner Deep Dive.pptx>)
-(20-slide architecture walkthrough, same content as the diagrams above) ·
+(22-slide architecture walkthrough, opens with an Introduction slide and
+includes the architecture poster as slide 6) ·
 [`docs/eval_suite.md`](docs/eval_suite.md) (the live Policy Agent eval
 suite — 14 golden questions, 14/14 on the latest run).
 Working conventions for anyone (human or Claude Code) editing this repo:

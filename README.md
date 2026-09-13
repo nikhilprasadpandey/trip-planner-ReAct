@@ -86,6 +86,14 @@ for real; everything else has a working default or is optional.
 
 ## Running
 
+**Before you start**: if your `.env` points `AUDIT_DB_URL` and/or
+`REDIS_URL` at real Postgres/Redis instances (rather than leaving them at
+the SQLite/in-process defaults), those need to actually be running first.
+Postgres missing will silently drop audit events (caught and logged, not a
+crash — but the audit trail will look empty). Redis missing degrades
+gracefully as of this build — a request still completes, it just won't
+get a cache hit.
+
 ```bash
 # 1. Seed the policy corpus into Qdrant (once, or after editing the corpus)
 python scripts/seed_policy_corpus.py

@@ -57,23 +57,39 @@ class _InMemoryBackend:
 
 
 class _RedisBackend:
+    """A cache is never allowed to be why a trip request fails — every
+    Redis call is wrapped so an unreachable/misconfigured instance degrades
+    to 'treat this as a cache miss' instead of raising into flight_node,
+    matching the graceful-degradation posture used everywhere else in this
+    app (flight-provider outages, a missing Langfuse key, ...)."""
+
     def __init__(self, client) -> None:
         self._client = client
 
     async def get(self, key: str) -> str | None:
-        value = await self._client.get(key)
+        try:
+            value = await self._client.get(key)
+        except Exception as exc:  # pragma: no cover - defensive only, needs a broken Redis to hit
+            print(f"[route_cache] Redis GET failed, treating as a miss: {exc}")
+            return None
         if value is None:
             return None
         return value.decode("utf-8") if isinstance(value, bytes) else value
 
     async def set(self, key: str, value: str) -> None:
-        await self._client.set(key, value, ex=_TTL_SECONDS)
+        try:
+            await self._client.set(key, value, ex=_TTL_SECONDS)
+        except Exception as exc:  # pragma: no cover - defensive only, needs a broken Redis to hit
+            print(f"[route_cache] Redis SET failed, not cached this time: {exc}")
 
     async def clear(self) -> None:
         # Scoped to this cache's own key prefix — never flush the whole
         # Redis logical DB, which may be shared with other uses.
-        async for k in self._client.scan_iter(match=f"{_KEY_PREFIX}*"):
-            await self._client.delete(k)
+        try:
+            async for k in self._client.scan_iter(match=f"{_KEY_PREFIX}*"):
+                await self._client.delete(k)
+        except Exception as exc:  # pragma: no cover - defensive only, needs a broken Redis to hit
+            print(f"[route_cache] Redis clear failed: {exc}")
 
 
 _backend: _Backend | None = None

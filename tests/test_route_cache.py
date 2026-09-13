@@ -8,6 +8,7 @@ even though one is configured for the live app."""
 from __future__ import annotations
 
 from trip_planner.cache import route_cache
+from trip_planner.cache.route_cache import _RedisBackend
 
 
 async def test_miss_then_hit_returns_stored_result_and_saved_cost():
@@ -55,3 +56,27 @@ async def test_selects_redis_backend_when_redis_url_set(monkeypatch):
     finally:
         monkeypatch.delenv("REDIS_URL", raising=False)
         route_cache._reset_backend_for_tests()
+
+
+class _BrokenRedisClient:
+    """Stands in for a Redis client that can't reach the server — every
+    call raises, the way redis.asyncio does on a real connection failure."""
+
+    async def get(self, key):
+        raise ConnectionError("could not connect to Redis")
+
+    async def set(self, key, value, ex=None):
+        raise ConnectionError("could not connect to Redis")
+
+    def scan_iter(self, match=None):
+        raise ConnectionError("could not connect to Redis")
+
+
+async def test_redis_backend_degrades_to_a_miss_when_unreachable():
+    """Regression: an unreachable Redis instance used to raise straight
+    through flight_node, turning a cache problem into a 500 for the whole
+    trip request — a cache must never be why a request fails."""
+    backend = _RedisBackend(_BrokenRedisClient())
+
+    assert await backend.get("some-key") is None  # never raises
+    await backend.set("some-key", "some-value")   # never raises, silently drops the write

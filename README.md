@@ -12,7 +12,9 @@ Architecture docs: [`docs/architecture.md`](docs/architecture.md) ·
 [`docs/example_prompts.md`](docs/example_prompts.md) (full detail behind
 the "Example prompts" section below) ·
 [`docs/Trip Planner Deep Dive.pptx`](<docs/Trip Planner Deep Dive.pptx>)
-(20-slide architecture walkthrough, same content as the diagrams above).
+(20-slide architecture walkthrough, same content as the diagrams above) ·
+[`docs/eval_suite.md`](docs/eval_suite.md) (the live Policy Agent eval
+suite — 14 golden questions, 14/14 on the latest run).
 Working conventions for anyone (human or Claude Code) editing this repo:
 [`CLAUDE.md`](CLAUDE.md).
 
@@ -207,6 +209,18 @@ Runs fully offline against fixtures in `tests/fixtures/` and fakes/mocks
 for Qdrant, embeddings, and OpenAI — no live keys required. One test
 (`test_run_trip_planning_end_to_end_live`) exercises a real end-to-end run
 and is skipped unless `OPENAI_API_KEY` and `DUFFEL_ACCESS_TOKEN` are set.
+
+**This checks plumbing, not answer quality** — the LLM call is mocked, so
+it can't catch a real regression in the Policy Agent's actual output. For
+that:
+
+```bash
+python scripts/run_policy_eval.py
+```
+
+A **live** eval suite — 14 golden questions scored against known-correct
+expected values (which clause, which cap, grounded or not), not prose
+text matching. See [`docs/eval_suite.md`](docs/eval_suite.md).
 
 ## Config
 

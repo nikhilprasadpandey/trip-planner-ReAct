@@ -223,3 +223,9 @@ plain Redis GET/SET the way an exact-match lookup does.
 | `cache/semantic_cache.py` | `test_semantic_cache.py` | Similarity hit/miss, job-level scoping, invalidation |
 | `audit/store.py` | `test_audit_store.py` | Round-trip, trace_id scoping, trail aggregation |
 | `audit/redact.py` | `test_redact.py` | Employee-id hashing, key stripping, recursion |
+
+Every row above mocks the LLM call — none of it can catch a real
+regression in the Policy Agent's actual answers. `scripts/run_policy_eval.py`
+is the live counterpart: 14 golden questions scored by structured result
+(which clause, grounded or not, cache hit or not) against real OpenAI +
+Qdrant. See [`eval_suite.md`](eval_suite.md).

@@ -9,6 +9,8 @@ Full spec: [`enterprise_agent_build_spec.md`](enterprise_agent_build_spec.md).
 Architecture docs: [`docs/architecture.md`](docs/architecture.md) ·
 [`docs/architecture_poster.html`](docs/architecture_poster.html) (one-page
 map — open it in a browser) ·
+[`docs/Trip Planner Architecture Poster.pptx`](<docs/Trip Planner Architecture Poster.pptx>)
+(same one-page map, downloadable slide) ·
 [`docs/HLD.md`](docs/HLD.md) · [`docs/LLD.md`](docs/LLD.md) ·
 [`docs/runbook_audit_trace.md`](docs/runbook_audit_trace.md) ·
 [`docs/example_prompts.md`](docs/example_prompts.md) (full detail behind

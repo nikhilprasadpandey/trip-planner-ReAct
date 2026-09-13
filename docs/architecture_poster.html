@@ -1,0 +1,385 @@
+<title>Trip Planner Architecture Poster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --bg:#F3EEDF;
+    --bg-weave-a:#EFE9D7;
+    --bg-weave-b:#F7F2E4;
+    --surface:#FFFFFF;
+    --surface-2:#F1EEE6;
+    --ink:#1E2224;
+    --ink-soft:#52585D;
+    --ink-faint:#767D84;
+    --line:#DDD6C4;
+    --line-strong:#B8AF97;
+    --header:#101B26;
+    --header-ink:#F3EEDF;
+    --accent:#0E7C8C;
+    --accent-deep:#0A5F6C;
+    --accent-tint:#E4EFEC;
+    --good:#2F8558;
+    --good-tint:#E4EFE9;
+    --warn:#A6740F;
+    --warn-tint:#F5ECDA;
+    --bad:#B33E33;
+    --bad-tint:#F7E6E3;
+    --shadow:0 4px 14px rgba(20,25,20,.08);
+    color-scheme:light;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      repeating-linear-gradient(45deg, var(--bg-weave-a) 0 2px, transparent 2px 8px),
+      repeating-linear-gradient(-45deg, var(--bg-weave-b) 0 2px, transparent 2px 8px),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Archivo",ui-sans-serif,system-ui,sans-serif;
+    padding:0 16px;
+    padding-block:16px 28px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:"JetBrains Mono",ui-monospace,monospace;}
+  .sheet{max-width:1520px;margin:0 auto;background:var(--surface);border-radius:14px;overflow:hidden;box-shadow:0 18px 44px rgba(20,25,20,.14);border:1px solid var(--line);}
+
+  /* ---------- header ---------- */
+  header{
+    background:var(--header);color:var(--header-ink);
+    padding:18px 26px;display:flex;align-items:center;gap:16px;
+  }
+  .mark{
+    width:44px;height:44px;border-radius:10px;background:var(--accent);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .mark svg{width:24px;height:24px;}
+  header .titles{flex:1;min-width:0;}
+  header h1{margin:0;font-size:21px;font-weight:800;letter-spacing:-.01em;}
+  header .sub{margin-top:2px;font-size:12.5px;color:#B9C2C8;}
+  header .date{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.06em;
+    color:#B9C2C8;white-space:nowrap;align-self:flex-start;
+  }
+
+  /* ---------- main grid ---------- */
+  .main{
+    display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;
+    padding:20px 22px;
+  }
+  @media (max-width:980px){ .main{grid-template-columns:1fr;} }
+
+  .flow{display:flex;flex-direction:column;gap:14px;}
+
+  /* generic panel/card */
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    box-shadow:var(--shadow);
+  }
+  .row-flow{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;}
+  .hop{
+    padding:12px 14px;min-width:150px;flex:1 1 170px;
+    display:flex;flex-direction:column;gap:2px;
+  }
+  .hop .icon-row{display:flex;align-items:center;gap:8px;margin-bottom:2px;}
+  .hop .dot{width:9px;height:9px;border-radius:50%;background:var(--line-strong);flex-shrink:0;}
+  .hop .t{font-weight:700;font-size:13.5px;}
+  .hop .d{font-size:11.5px;color:var(--ink-soft);line-height:1.4;}
+  .arrow-h{display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:18px;min-width:14px;}
+  @media (max-width:700px){ .arrow-h{display:none;} }
+
+  /* orchestration block */
+  .orch{border:1.5px solid var(--accent);}
+  .orch .bar{
+    background:var(--accent);color:#fff;padding:9px 16px;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    border-radius:9px 9px 0 0;
+  }
+  .orch .bar .t{font-weight:800;font-size:14.5px;display:flex;align-items:center;gap:8px;}
+  .orch .bar .tag{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.03em;color:#DCEFF0;}
+  .orch .lede{padding:10px 16px 4px;font-size:12px;color:var(--ink-soft);line-height:1.45;}
+  .orch .lede .mono{color:var(--accent-deep);}
+  .cols4{display:grid;grid-template-columns:repeat(4,1fr);gap:0;padding:8px 12px 14px;}
+  @media (max-width:900px){ .cols4{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:520px){ .cols4{grid-template-columns:1fr;} }
+  .colbox{padding:8px 10px;}
+  .colbox h4{
+    margin:0 0 7px;font-family:"JetBrains Mono",monospace;font-size:10.5px;
+    letter-spacing:.05em;text-transform:uppercase;color:var(--accent-deep);
+    border-bottom:1px solid var(--line);padding-bottom:5px;
+  }
+  .colbox ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;}
+  .colbox li{
+    font-family:"JetBrains Mono",monospace;font-size:10.8px;color:var(--ink);
+    position:relative;padding-left:11px;
+  }
+  .colbox li::before{content:"\2022";position:absolute;left:0;color:var(--accent);}
+  .colbox .note{
+    margin-top:8px;font-size:10px;color:var(--ink-faint);line-height:1.4;
+    border-top:1px dashed var(--line);padding-top:6px;
+  }
+
+  /* MCP layer */
+  .mcp .bar{background:var(--surface-2);color:var(--ink);}
+  .mcp .bar .tag{color:var(--ink-faint);}
+  .pill-row{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;}
+  .pill{
+    font-family:"JetBrains Mono",monospace;font-size:11.5px;font-weight:600;
+    padding:7px 13px;border-radius:999px;border:1.4px solid var(--accent);
+    color:var(--accent-deep);background:var(--accent-tint);
+  }
+  .pill.gated{border-color:var(--bad);color:var(--bad);background:var(--bad-tint);}
+  .mcp .cap{padding:0 16px 12px;font-size:11px;color:var(--ink-faint);line-height:1.5;}
+
+  /* provider abstraction row */
+  .provider{display:grid;grid-template-columns:repeat(5,1fr);gap:0;}
+  @media (max-width:900px){ .provider{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:520px){ .provider{grid-template-columns:1fr;} }
+  .prov-cell{padding:12px 14px;border-right:1px solid var(--line);}
+  .prov-cell:last-child{border-right:none;}
+  .prov-cell .k{font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.04em;color:var(--ink-faint);text-transform:uppercase;}
+  .prov-cell .v{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--ink);margin-top:3px;font-weight:600;}
+
+  /* infra pills */
+  .infra{display:flex;flex-wrap:wrap;gap:10px;padding:14px 16px;justify-content:center;}
+  .infra-pill{
+    background:var(--accent-deep);color:#fff;border-radius:999px;
+    padding:11px 18px;text-align:center;min-width:118px;flex:1 1 130px;
+  }
+  .infra-pill .t{font-weight:700;font-size:12.5px;}
+  .infra-pill .d{font-family:"JetBrains Mono",monospace;font-size:9.5px;color:#CFE7E6;margin-top:2px;}
+
+  /* right side panels */
+  .side{display:flex;flex-direction:column;gap:14px;}
+  .panel{border-radius:10px;box-shadow:var(--shadow);overflow:hidden;border:1px solid var(--line);}
+  .panel .phead{
+    padding:10px 14px;display:flex;align-items:center;gap:8px;
+    font-weight:800;font-size:13.5px;color:var(--ink);
+  }
+  .panel .phead .bead{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .panel .phead .scope{font-family:"JetBrains Mono",monospace;font-weight:400;font-size:10.5px;color:var(--ink-faint);}
+  .panel .pbody{padding:2px 14px 12px;background:var(--surface);}
+  .panel ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;}
+  .panel li{font-size:11.5px;color:var(--ink-soft);line-height:1.4;position:relative;padding-left:12px;}
+  .panel li::before{content:"\2022";position:absolute;left:0;}
+  .panel.knowledge .phead .bead{background:var(--accent);}
+  .panel.knowledge li::before{color:var(--accent);}
+  .panel.knowledge{border-top:3px solid var(--accent);}
+  .panel.caches .phead .bead{background:var(--bad);}
+  .panel.caches li::before{color:var(--bad);}
+  .panel.caches{border-top:3px solid var(--bad);}
+  .panel.gov .phead .bead{background:var(--warn);}
+  .panel.gov li::before{color:var(--warn);}
+  .panel.gov{border-top:3px solid var(--warn);}
+  .callout{
+    margin-top:9px;padding:8px 10px;border-radius:7px;font-family:"JetBrains Mono",monospace;
+    font-size:10px;line-height:1.5;
+  }
+  .callout.knowledge{background:var(--accent-tint);border:1px solid var(--accent);color:var(--accent-deep);}
+  .callout.caches{background:var(--bad-tint);border:1px solid var(--bad);color:var(--bad);}
+  .callout.gov{background:var(--warn-tint);border:1px solid var(--warn);color:var(--warn);}
+
+  /* footer stack */
+  footer{background:var(--header);color:var(--header-ink);padding:14px 22px 18px;}
+  footer .flabel{
+    font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:#8FA0A9;margin-bottom:9px;
+  }
+  .stack-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .stack-chip{
+    font-family:"JetBrains Mono",monospace;font-size:11.5px;font-weight:600;
+    padding:6px 12px;border-radius:6px;background:#1B2A38;color:#DCE6EA;
+    border:1px solid #2A3C4C;
+  }
+  .stack-chip.swap{background:var(--accent);color:#fff;border-color:var(--accent);}
+  footer .fnote{margin-top:10px;font-size:10.5px;color:#8FA0A9;}
+  footer .fnote .mono{color:#B9C2C8;}
+
+  @media (max-width:400px){
+    header{padding:14px 14px;}
+    .main{padding:14px 12px;}
+    footer{padding:12px 14px 16px;}
+  }
+</style>
+
+<div class="sheet">
+
+  <header>
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M2.5 12.5 21 5l-6.5 8.2L21 19 2.5 12.5Zm8.2-.2L4 9" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="titles">
+      <h1>Trip Planner</h1>
+      <div class="sub">Corporate Travel Planner &amp; Policy-Compliance Agent — Architecture</div>
+    </div>
+    <div class="date">SEP 2026</div>
+  </header>
+
+  <div class="main">
+
+    <div class="flow">
+
+      <!-- top hop row -->
+      <div class="card row-flow">
+        <div class="hop">
+          <div class="icon-row"><span class="dot" style="background:var(--ink-faint)"></span><span class="t">Employee</span></div>
+          <div class="d">IC / Manager / Director</div>
+        </div>
+        <div class="arrow-h">&#8594;</div>
+        <div class="hop">
+          <div class="icon-row"><span class="dot" style="background:var(--accent)"></span><span class="t">Client Layer</span></div>
+          <div class="d">Streamlit UI — persona switcher, policy Q&amp;A</div>
+        </div>
+        <div class="arrow-h">&#8594;</div>
+        <div class="hop">
+          <div class="icon-row"><span class="dot" style="background:var(--accent)"></span><span class="t">API Gateway &middot; FastAPI</span></div>
+          <div class="d">Mock OIDC (X-Employee-Id) &middot; rate limiting</div>
+        </div>
+      </div>
+
+      <!-- orchestrator -->
+      <div class="card orch">
+        <div class="bar">
+          <span class="t">&#9881; LangGraph Orchestrator — Deterministic Router</span>
+          <span class="tag">pipeline, not hub-and-spoke &middot; 3 nodes + 1 loop edge</span>
+        </div>
+        <div class="lede">
+          <span class="mono">route_after_policy_check(state)</span> re-reads the full state after
+          <span class="mono">policy_check</span> and returns exactly one of two edges — no LLM
+          decides what runs next.
+        </div>
+        <div class="cols4">
+          <div class="colbox">
+            <h4>agents/</h4>
+            <ul><li>WeatherAgent</li><li>FlightAgent</li><li>PolicyAgent</li></ul>
+          </div>
+          <div class="colbox">
+            <h4>guardrails/</h4>
+            <ul>
+              <li>allowlist</li><li>prompt_injection</li><li>groundedness</li>
+              <li>thresholds</li><li>approval_gate</li>
+            </ul>
+            <div class="note">5 independent layers — defense in depth</div>
+          </div>
+          <div class="colbox">
+            <h4>rag/ · policy</h4>
+            <ul>
+              <li>retrieve_policy_clauses</li><li>job_level baked in</li>
+              <li>Qdrant payload filter</li>
+            </ul>
+            <div class="note">not an LLM-fillable parameter — re-checked at the retrieval call</div>
+          </div>
+          <div class="colbox">
+            <h4>cross-cutting</h4>
+            <ul><li>cost/ledger.py (dual)</li><li>audit/store.py</li><li>observability/tracing.py</li></ul>
+            <div class="note">wraps every node, not a pipeline stage</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MCP layer -->
+      <div class="card mcp">
+        <div class="bar">
+          <span class="t">&#128268; MCP Tool Layer</span>
+          <span class="tag">stdio JSON-RPC &middot; spawned per-agent via mcp_client.py</span>
+        </div>
+        <div class="pill-row">
+          <span class="pill">geocode</span>
+          <span class="pill">get_weather</span>
+          <span class="pill">search_flights</span>
+          <span class="pill gated">book_flight — gated</span>
+        </div>
+        <div class="cap">Two servers: <span class="mono">trip_lookup_server</span> (read-only) and <span class="mono">booking_server</span> (the one write action) — deliberately separate processes, not a permissions flag inside one server.</div>
+      </div>
+
+      <!-- provider abstraction -->
+      <div class="card">
+        <div class="provider">
+          <div class="prov-cell"><div class="k">Flight provider</div><div class="v">duffel | aviationstack</div></div>
+          <div class="prov-cell"><div class="k">LLM + embeddings</div><div class="v">openai (gpt-4.1)</div></div>
+          <div class="prov-cell"><div class="k">Vector store</div><div class="v">qdrant</div></div>
+          <div class="prov-cell"><div class="k">Audit DB</div><div class="v">sqlite | postgresql</div></div>
+          <div class="prov-cell"><div class="k">Route cache</div><div class="v">in-process | redis</div></div>
+        </div>
+      </div>
+
+      <!-- infra -->
+      <div class="card">
+        <div class="infra">
+          <div class="infra-pill"><div class="t">Qdrant Cloud</div><div class="d">policy corpus</div></div>
+          <div class="infra-pill"><div class="t">Redis</div><div class="d">route cache (optional)</div></div>
+          <div class="infra-pill"><div class="t">OpenAI</div><div class="d">gpt-4.1 + embeddings</div></div>
+          <div class="infra-pill"><div class="t">SQLAlchemy</div><div class="d">SQLite / Postgres</div></div>
+          <div class="infra-pill"><div class="t">Duffel / Aviationstack</div><div class="d">flight pricing</div></div>
+          <div class="infra-pill"><div class="t">Nominatim / Open-Meteo</div><div class="d">weather (free)</div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- side panels -->
+    <div class="side">
+
+      <div class="panel knowledge">
+        <div class="phead">&#128274; Policy Knowledge <span class="scope">&middot; Qdrant, 1 collection</span></div>
+        <div class="pbody">
+          <ul>
+            <li>corporate-travel-policy — 12 sections, chunked by clause</li>
+            <li>job_levels payload index (keyword) — required to filter</li>
+            <li>embeddings: text-embedding-3-small</li>
+            <li>re-ingested wholesale on every corpus edit</li>
+          </ul>
+          <div class="callout knowledge">rag/corpus/policy_source.md<br>caps kept in sync with config/guardrails.yaml</div>
+        </div>
+      </div>
+
+      <div class="panel caches">
+        <div class="phead">&#9889; Caches <span class="scope">&middot; two tiers</span></div>
+        <div class="pbody">
+          <ul>
+            <li>Route cache (Redis) — 600s TTL &middot; key: origin:dest:date:cabin</li>
+            <li>Semantic Q&amp;A cache (in-process) — job_level bucket &middot; cosine &ge; 0.70</li>
+            <li>Redis unset &rarr; falls back to in-process, same interface</li>
+          </ul>
+          <div class="callout caches">a cache is never allowed to be why a request fails — an unreachable Redis degrades to "treat as a miss," never a crash</div>
+        </div>
+      </div>
+
+      <div class="panel gov">
+        <div class="phead">&#128737; Governance &amp; Observability</div>
+        <div class="pbody">
+          <ul>
+            <li>Langfuse — 1 trace/request, spans per agent + guardrail event</li>
+            <li>Mock OIDC/RBAC — job_level drives cap + approver, re-checked at retrieval</li>
+            <li>Approval Gate — book_flight blocked without a granted record</li>
+            <li>Audit trail — SQLAlchemy, append-only, PII-hashed</li>
+            <li>Golden eval suite — 14/14 (3 easy &middot; 4 medium &middot; 3 hard &middot; 4 adversarial)</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    <div class="flabel">Technology Stack</div>
+    <div class="stack-row">
+      <span class="stack-chip">LangChain</span>
+      <span class="stack-chip">LangGraph</span>
+      <span class="stack-chip">FastAPI</span>
+      <span class="stack-chip">Streamlit</span>
+      <span class="stack-chip swap">Qdrant</span>
+      <span class="stack-chip">MCP</span>
+      <span class="stack-chip">Langfuse</span>
+      <span class="stack-chip">SQLAlchemy</span>
+      <span class="stack-chip swap">Redis</span>
+      <span class="stack-chip swap">OpenAI</span>
+      <span class="stack-chip">Duffel</span>
+      <span class="stack-chip">Aviationstack</span>
+      <span class="stack-chip">Nominatim</span>
+      <span class="stack-chip">Open-Meteo</span>
+    </div>
+    <div class="fnote"><span class="mono">&#9632;</span> = swapped mid-build from the original spec (Pinecone &rarr; Qdrant, Anthropic &rarr; OpenAI) and Redis wired from real, live-verified — see <span class="mono">CLAUDE.md</span>'s deviation notes.</div>
+  </footer>
+
+</div>

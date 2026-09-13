@@ -10,7 +10,9 @@ Architecture docs: [`docs/architecture.md`](docs/architecture.md) ·
 [`docs/HLD.md`](docs/HLD.md) · [`docs/LLD.md`](docs/LLD.md) ·
 [`docs/runbook_audit_trace.md`](docs/runbook_audit_trace.md) ·
 [`docs/example_prompts.md`](docs/example_prompts.md) (full detail behind
-the "Example prompts" section below).
+the "Example prompts" section below) ·
+[`docs/Trip Planner Deep Dive.pptx`](<docs/Trip Planner Deep Dive.pptx>)
+(20-slide architecture walkthrough, same content as the diagrams above).
 Working conventions for anyone (human or Claude Code) editing this repo:
 [`CLAUDE.md`](CLAUDE.md).
 
